@@ -2,6 +2,7 @@ src/generated
 src/generatedOld
 arken.db
 arken.db.*
+.DS_Store
 
 build
 secrets.json

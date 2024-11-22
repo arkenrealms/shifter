@@ -3,7 +3,9 @@ import { v4 as uuidv4 } from 'uuid'
 import jetpack from 'fs-jetpack'
 import path from 'path'
 import { log, isDebug } from '@arken/node/util'
-import { decodeItem } from '@arken/node/util/decoder'
+import { toTitleCase } from '@arken/node/util/string'
+import itemData from '@arken/node/data/generated/items.json'
+import { decodeItem, getTokenIdFromItem, convertRuneSymbol } from '@arken/node/util/decoder'
 // import { transformRequest, transformResponse } from '@w4verse/lite-ui/utils/db'
 import { PrismaClient } from './generated'
 import { PrismaClient as OldPrismaClient } from './generatedOld'
@@ -54,8 +56,28 @@ import planets from '@arken/node/data/generated/planets.json'
 import solarSystems from '@arken/node/data/generated/solarSystems.json'
 import games from '@arken/node/data/generated/games.json'
 import achievements from '../../data/achievements.json'
-import * as schemas from '@arken/node/schema/mongoose'
+import * as Arken from '@arken/node/types'
 import * as database from '@arken/node/db'
+import {
+  Area,
+  Asset,
+  Chain,
+  Character,
+  Chat,
+  Collection,
+  Core,
+  Game,
+  Interface,
+  Item,
+  Job,
+  Market,
+  Product,
+  Profile,
+  Raffle,
+  Skill,
+  Video,
+} from '@arken/node'
+import { getAsset } from 'node:sea'
 
 const oldPrisma = new OldPrismaClient({
   datasources: {
@@ -78,26 +100,86 @@ class App {
 
   gameNumberToGameId(id: any) {
     return {
-      1: this.cache.Game['Arken: Runic Raids'].id,
-      2: this.cache.Game['Arken: Evolution Isles'].id,
-      3: this.cache.Game['Arken: Infinite Arena'].id,
-      4: this.cache.Game['Arken: Guardians Unleashed'].id,
-      5: this.cache.Game['Arken: Heart of the Oasis'].id,
+      1: this.cache.Game['Runic Raids'].id,
+      2: this.cache.Game['Evolution Isles'].id,
+      3: this.cache.Game['Infinite Arena'].id,
+      4: this.cache.Game['Guardians Unleashed'].id,
+      5: this.cache.Game['Heart of the Oasis'].id,
     }[id]
+  }
+
+  async createItemFromDef(itemDef: any) {
+    try {
+      const assetId = await this.model.Asset.findOne({ name: itemDef.name })
+
+      const chainId = await this.model.Chain.findOne({ name: 'BSC' })
+
+      const typeId = await this.model.ItemType.findOne({ key: itemDef.type + '' })
+
+      const subTypeId = await this.model.ItemSubType.findOne({ key: itemDef.subType + '' })
+
+      const specificTypeId = await this.model.ItemSpecificType.findOne({
+        key: itemDef.specificType + '',
+      })
+
+      const rarityId = await this.model.ItemRarity.findOne({ key: 1 + '' })
+
+      const slotId = await this.model.ItemSlot.findOne({ key: itemDef.slots[0] + '' })
+
+      // // If setId is applicable
+      // let setId: Arken.Schema.ObjectId | undefined = undefined;
+      // if (itemDef.details.Type === 'Rune' && itemDef.category === 'accessory') {
+      //   setId = await this.model.ItemSet.findOne({ name: 'Default Set' });
+      // }
+
+      // Create the Item
+      const newItem = await this.model.Item.create({
+        token: itemDef.uuid, // Assuming 'uuid' is used as token
+        assetId: assetId,
+        chainId: chainId,
+        typeId: typeId,
+        subTypeId: subTypeId,
+        specificTypeId: specificTypeId,
+        rarityId: rarityId,
+        slotId: slotId,
+        attributes: [], // Populate if attributes are present
+        quantity: parseInt(itemDef.value, 10) || 1,
+        isTradeable: itemDef.isTradeable,
+        isEquipable: itemDef.isEquipable,
+        isUnequipable: itemDef.isUnequipable,
+        isTransferable: itemDef.isTransferable,
+        // Add other fields as necessary
+        // For fields not present in the schema, consider adding a 'meta' field or ignoring
+        // Example:
+        meta: itemDef,
+      })
+
+      console.log(`Item '${newItem.name}' created successfully with ID: ${newItem._id}`)
+    } catch (error) {
+      console.error('Error creating item:', error)
+    }
   }
 
   async getGuild(oldId: any, oldGuild: any = null) {
     if (!this.cache.Team[oldId] && oldGuild) {
-      this.cache.Team[oldId] = await this.model.Team.create({
+      this.cache.Team[oldId] = await this.model.Team.findOne({
+        applicationId: this.cache.Application.Arken.id,
         key: oldGuild.key,
-        name: oldGuild.name,
-        description: oldGuild.description,
-        meta: oldGuild,
-        status: 'Active',
-        ownerId: this.cache.Profile.zen0.id,
-        createdById: this.cache.Profile.zen0.id,
-        editedById: this.cache.Profile.zen0.id,
       })
+
+      if (!this.cache.Team[oldId]) {
+        this.cache.Team[oldId] = await this.model.Team.create({
+          applicationId: this.cache.Application.Arken.id,
+          key: oldGuild.key,
+          name: oldGuild.name,
+          description: oldGuild.description,
+          meta: oldGuild,
+          status: 'Active',
+          ownerId: this.cache.Profile.Memefella.id,
+          createdById: this.cache.Profile.Memefella.id,
+          editedById: this.cache.Profile.Memefella.id,
+        })
+      }
     }
 
     return this.cache.Team[oldId]
@@ -106,7 +188,7 @@ class App {
   async migrateAccounts() {
     await oldPrisma.$connect()
 
-    const oldAccounts = await oldPrisma.account.findMany()
+    const oldAccounts = [] // await oldPrisma.account.findMany()
     console.log(`Number of Prisma v1 accounts to migrate: ${oldAccounts.length}`)
 
     for (const index in oldAccounts) {
@@ -118,10 +200,11 @@ class App {
 
       if (!oldAccount.email) continue
 
-      let newAccount = await this.model.Account.findOne({ username: oldAccount.email })
+      let newAccount = await this.model.Account.findOne({ username: oldAccount.email }).exec()
 
       if (!newAccount) {
         this.cache.Account[oldAccount.address] = await this.model.Account.create({
+          applicationId: this.cache.Application.Arken.id,
           username: oldAccount.email,
           meta: oldAccount.meta,
           status: {
@@ -138,7 +221,7 @@ class App {
     }
     process.stdout.write('\n')
 
-    const accounts = await prisma.account.findMany()
+    const accounts = [] // await prisma.account.findMany()
     console.log(`Number of Prisma v2 accounts to migrate: ${accounts.length}`)
 
     for (const index in accounts) {
@@ -155,7 +238,7 @@ class App {
           { username: account.lastName },
           { address: account.address },
         ],
-      })
+      }).exec()
 
       if (existingAccount) {
         // console.log(`Account with key ${account.lastName} already exists.`)
@@ -173,6 +256,7 @@ class App {
 
       if (!this.cache.Account[account.address]) {
         this.cache.Account[account.address] = await this.model.Account.create({
+          applicationId: this.cache.Application.Arken.id,
           username: account.lastName,
           key: account.lastName,
           value: account.value,
@@ -193,9 +277,15 @@ class App {
     const oldProfiles = await prisma.profile.findMany()
     console.log(`Found ${oldProfiles.length} old profiles`)
 
-    for (const oldProfile of oldProfiles) {
-      // @ts-ignore
-      let newProfile = await this.model.Profile.findOne({ name: oldProfile.name })
+    for (const index in oldProfiles) {
+      const oldProfile = oldProfiles[index]
+      process.stdout.clearLine(0)
+      process.stdout.cursorTo(0)
+      process.stdout.write(`Progress: ${(parseInt(index) / oldProfiles.length) * 100}%`)
+
+      let newProfile: Arken.Profile.Types.Profile = await this.model.Profile.findOne({
+        name: oldProfile.name,
+      }).exec()
 
       if (!newProfile && oldProfile?.name) {
         console.log(oldProfile)
@@ -209,10 +299,11 @@ class App {
                 address: oldProfile.address,
               },
             ],
-          })
+          }).exec()
 
           if (!this.cache.Account[oldProfile.address]) {
             this.cache.Account[oldProfile.address] = await this.model.Account.create({
+              applicationId: this.cache.Application.Arken.id,
               username: oldProfile.name,
               meta: oldProfile.meta,
               status: {
@@ -229,6 +320,7 @@ class App {
         }
 
         newProfile = await this.model.Profile.create({
+          applicationId: this.cache.Application.Arken.id,
           // @ts-ignore
           name: oldProfile.name,
           key: oldProfile.key,
@@ -239,7 +331,7 @@ class App {
           accountId: this.cache.Account[oldProfile.address].id,
           chainId: this.cache.Chain.BSC.id,
           // @ts-ignore
-          guildId: await getGuild(oldProfile.meta.guildId).id,
+          guildId: await this.getGuild(oldProfile.meta.guildId).id,
         })
 
         // @ts-ignore
@@ -251,11 +343,13 @@ class App {
             // need to hit BSC to figure out the characters token ID so we don't duplicate
             this.cache.Character[character.tokenId] = await this.model.Character.findOne({
               token: character.tokenId,
-            })
+            }).exec()
 
             if (!this.cache.Character[character.tokenId]) {
               this.cache.Character[character.tokenId] = await this.model.Character.create({
+                applicationId: this.cache.Application.Arken.id,
                 name: character.name,
+                key: character.tokenId,
                 meta: character,
                 status: 'Active',
                 ownerId: newProfile.id,
@@ -268,33 +362,226 @@ class App {
         }
       }
 
-      process.stdout.write('\n')
-
       const achievements = jetpack.read(
-        path.resolve(`../../data/users/${newProfile.address}/achievements.json`),
+        path.resolve(`../data/users/${newProfile.address}/achievements.json`),
         'json'
       )
       const characters = jetpack.read(
-        path.resolve(`../../data/users/${newProfile.address}/characters.json`),
+        path.resolve(`../data/users/${newProfile.address}/characters.json`),
         'json'
       )
       const evolution = jetpack.read(
-        path.resolve(`../../data/users/${newProfile.address}/evolution.json`),
+        path.resolve(`../data/users/${newProfile.address}/evolution.json`),
         'json'
       )
       const inventory = jetpack.read(
-        path.resolve(`../../data/users/${newProfile.address}/inventory.json`),
+        path.resolve(`../data/users/${newProfile.address}/inventory.json`),
         'json'
       )
       const market = jetpack.read(
-        path.resolve(`../../data/users/${newProfile.address}/market.json`),
+        path.resolve(`../data/users/${newProfile.address}/market.json`),
         'json'
       )
       const overview = jetpack.read(
-        path.resolve(`../../data/users/${newProfile.address}/overview.json`),
+        path.resolve(`../data/users/${newProfile.address}/overview.json`),
         'json'
       )
-      console.log(444, achievements, characters, evolution, inventory, market, overview)
+
+      console.log(111, newProfile.meta, achievements, characters)
+
+      // newProfile.meta = {
+      //   ...(newProfile.meta || {}),
+      //   achievements,
+      //   characters,
+      //   evolution,
+      //   inventory,
+      //   market,
+      //   overview,
+      // }
+
+      if (achievements) newProfile.meta.achievements = achievements
+      if (characters) newProfile.meta.characters = characters
+      if (evolution) newProfile.meta.evolution = evolution
+      if (inventory) newProfile.meta.inventory = inventory
+      if (market) newProfile.meta.market = market
+      if (overview) newProfile.meta.overview = overview
+
+      console.log(222, newProfile.meta)
+
+      // Migrate rewards
+      // rewards: {
+      //   items: [],
+      //   runes: {
+      //     amn: 0.1,
+      //     dol: 0.26,
+      //     hel: 0.03,
+      //     ith: 0.19,
+      //     nef: 0.22,
+      //     ort: 0.14,
+      //     ral: 0.03,
+      //     sol: 0.06,
+      //     tal: 0.19,
+      //     tir: 0.21,
+      //     zod: 0.161,
+      //     thul: 0.24,
+      //     shael: 0.22
+      //   }
+      // },
+      const character = this.cache.Character[newProfile.characters?.[0]?.characterId]
+
+      if (character) {
+        let rewardBag = character.inventory[character.inventoryIndex].items.find(
+          (item: any) => item.name === 'Runic Reward Bag'
+        )
+
+        if (!rewardBag) {
+          const itemDef = itemData.find((r) => r.name === `Runic Reward Bag`)
+
+          const tokenId = getTokenIdFromItem(itemDef)
+
+          rewardBag = await this.model.Item.create({
+            token: tokenId, // TODO: is there a tokenId for every rune yet? if not, reserve it and insert as an Asset. dont need token if we use asset.
+            assetId: this.cache.Asset[itemDef.id].id,
+            chainId: this.cache.Chain.BSC.id,
+            applicationId: this.cache.Application.Arken.id,
+            key: tokenId,
+            meta: itemDef,
+            name: itemDef.name,
+            status: 'Active',
+            materialId: this.cache.ItemMaterial[itemDef.materials?.[0]]?.id,
+            // skinId: this.cache.ItemSkin[itemDef.skin]?.id, // TODO: convert the skin mapper stuff to items, and get the skin item from there
+            // recipeId: this.cache.ItemRecipe[itemDef.recipe]?.id,
+            typeId: this.cache.ItemType[itemDef.type]?.id,
+            subTypeId: this.cache.ItemSubType[itemDef.subType]?.id,
+            specificTypeId: this.cache.ItemSpecificType[itemDef.specificType]?.id,
+            // rarityId: this.cache.ItemRarity[itemDef.rarity]?.id,
+            slotId: this.cache.ItemSlot[itemDef.slots?.[0]]?.id,
+            // setId: this.cache.ItemSet[itemDef.set]?.id,
+            attributes: [],
+            quantity: 1,
+            slotX: undefined,
+            slotY: undefined,
+            // properties: z.record(z.any()).optional(),
+            // type: z.string().default('bag'), // stash, bag, equipment, etc.
+            // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
+            items: [],
+            capacity: undefined,
+            points: 0,
+          })
+        }
+
+        const rewards = []
+
+        // TODO: create the Item for these using Asset, or find the Item in their inventory and increase the quantity
+        if (typeof newProfile.meta.rewards.runes === 'object') {
+          for (const rune of Object.keys(newProfile.meta.rewards.runes)) {
+            // Look for an existing Runic Reward Bag, if doesnt exist create it
+            // Add the runes to that
+            const quantity = newProfile.meta.rewards.runes[rune]
+
+            const itemDef = itemData.find(
+              (r) => r.name === `${toTitleCase(convertRuneSymbol(rune))} Rune`
+            )
+            const tokenId = getTokenIdFromItem(itemDef)
+
+            const reward = this.model.Item.create({
+              assetId: this.cache.Asset[convertRuneSymbol(rune)].id,
+              chainId: this.cache.Chain.BSC.id,
+              token: tokenId, // TODO: is there a tokenId for every rune yet? if not, reserve it and insert as an Asset. dont need token if we use asset.
+              applicationId: this.cache.Application.Arken.id,
+              key: tokenId,
+              meta: itemDef,
+              name: itemDef.name,
+              status: 'Active',
+              materialId: this.cache.ItemMaterial[itemDef.materials?.[0]]?.id,
+              // skinId: this.cache.ItemSkin[itemDef.skin]?.id, // TODO: convert the skin mapper stuff to items, and get the skin item from there
+              // recipeId: this.cache.ItemRecipe[itemDef.recipe]?.id,
+              typeId: this.cache.ItemType[itemDef.type]?.id,
+              subTypeId: this.cache.ItemSubType[itemDef.subType]?.id,
+              specificTypeId: this.cache.ItemSpecificType[itemDef.specificType]?.id,
+              // rarityId: this.cache.ItemRarity[itemDef.rarity]?.id,
+              slotId: this.cache.ItemSlot[itemDef.slots?.[0]]?.id,
+              // setId: this.cache.ItemSet[itemDef.set]?.id,
+              attributes: [],
+              quantity,
+              slotX: undefined,
+              slotY: undefined,
+              // properties: z.record(z.any()).optional(),
+              // type: z.string().default('bag'), // stash, bag, equipment, etc.
+              // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
+              items: [],
+              capacity: undefined,
+              points: 0,
+            })
+
+            rewards.push(reward.id)
+          }
+        }
+
+        rewardBag.items = rewards
+
+        await rewardBag.save()
+
+        character.inventory.items = [rewardBag.id]
+      }
+
+      // Migrate characters
+      if (Array.isArray(newProfile.meta.characters)) {
+        newProfile.characters = []
+
+        for (const character of newProfile.meta.characters) {
+          if (!this.cache.Character[character.tokenId])
+            this.cache.Character[character.tokenId] = await this.model.Character.findOne({
+              token: character.tokenId,
+            })
+
+          if (!this.cache.Character[character.tokenId]) {
+            console.log('Error finding character with token: ' + character.tokenId)
+            continue
+          }
+          newProfile.characters.push({
+            characterId: this.cache.Character[character.tokenId].id,
+            meta: character,
+          })
+        }
+      }
+
+      // Migrate market
+
+      // Migrate inventory
+
+      // Migrate evolution
+      if (!newProfile.stats) newProfile.stats = {}
+      if (!newProfile.stats.evolution) newProfile.stats.evolution = {}
+
+      newProfile.stats.craftedItemCount = newProfile.meta.craftedItemCount
+      newProfile.stats.equippedItemCount = newProfile.meta.equippedItemCount
+      newProfile.stats.transferredInCount = newProfile.meta.transferredInCount
+      newProfile.stats.transferredOutCount = newProfile.meta.transferredOutCount
+      newProfile.stats.marketTradeSoldCount = newProfile.meta.marketTradeSoldCount
+      newProfile.stats.marketTradeListedCount = newProfile.meta.marketTradeListedCount
+      newProfile.stats.evolution = newProfile.meta.evolution
+
+      newProfile.teamId = this.cache.Team[newProfile.meta.overview.guildId].id
+
+      // Migrate overview
+
+      // Migrate achievements
+      if (Array.isArray(newProfile.meta.achievements)) {
+        newProfile.achievements = []
+
+        for (const achievement of newProfile.meta.achievements) {
+          newProfile.achievements.push({
+            achievementId: this.cache.Achievement[achievement].id,
+            current: 1, // 1 = 100%
+          })
+        }
+      }
+
+      // @ts-ignore
+      await newProfile.save()
+
+      process.stdout.write('\n')
     }
   }
 
@@ -324,6 +611,7 @@ class App {
       }
 
       this.cache.Payment[claimRequest.id] = await this.model.Payment.create({
+        applicationId: this.cache.Application.Arken.id,
         name: claimRequest.username,
         value: claimRequest.address,
         key: claimRequest.id,
@@ -371,6 +659,7 @@ class App {
       }[referral.status]
 
       await this.model.Referral.create({
+        applicationId: this.cache.Application.Arken.id,
         recipientId: recipient.id,
         senderId: sender.id,
         meta: referral,
@@ -390,23 +679,442 @@ class App {
 
     // @ts-ignore
     for (const item of items) {
-      this.oldCache.Asset[item.id] = item
-
       if (!item.id) continue
+
+      this.oldCache.Asset[item.id] = item
 
       if (this.cache.Asset[item.name]) {
         console.log('Asset ' + item.name + ' already exists')
         continue
       }
 
-      this.cache.Asset[item.name] = await this.model.Asset.create({
-        name: item.name,
+      console.log('Asset creating ', item.name)
+
+      this.cache.Asset[item.name] = await this.model.Asset.findOne({
         key: item.id + '',
-        meta: item,
-        status: 'Active',
-      })
+      }).exec()
+
+      if (!this.cache.Asset[item.name])
+        this.cache.Asset[item.name] = await this.model.Asset.create({
+          applicationId: this.cache.Application.Arken.id,
+          chainId: this.cache.Chain.BSC.id,
+          name: item.name,
+          key: item.id + '',
+          meta: item,
+          status: 'Active',
+          uri:
+            'https://arken.gg/item/' + item.name.replace(/ /gi, '-').replace("'", '').toLowerCase(),
+          type: 'ERC-721',
+          standard: 'ARX-1',
+        })
 
       // console.log(asset.id)
+    }
+
+    // {
+    //   "name": "Arken Realm Shards",
+    //   "symbol": "RXS",
+    //   "address": "0x2098fef7eeae592038f4f3c4b008515fed0d5886",
+    //   "chainId": 56,
+    //   "decimals": 18,
+    //   "logoURI": "https://swap.arken.gg/images/rune-500x500.png"
+    // },
+
+    const runes = [
+      {
+        name: 'Ex Rune',
+        symbol: 'EX',
+        oldSymbol: 'EL',
+        address: '0x210c14fbecc2bd9b6231199470da12ad45f64d45',
+        chainId: 56,
+        decimals: 18,
+        id: 60,
+        logoURI: 'https://swap.arken.gg/images/farms/el.png',
+      },
+      {
+        name: 'Elm Rune',
+        symbol: 'ELM',
+        oldSymbol: 'ELD',
+        address: '0xe00b8109bcb70b1edeb4cf87914efc2805020995',
+        chainId: 56,
+        decimals: 18,
+        id: 61,
+        logoURI: 'https://swap.arken.gg/images/farms/eld.png',
+      },
+      {
+        name: 'Eva Rune',
+        symbol: 'EVA',
+        oldSymbol: 'ETH',
+        address: '0x919676B73a8d124597cBbA2E400f81Aa91Aa2450',
+        chainId: 56,
+        decimals: 18,
+        id: 62,
+        logoURI: 'https://swap.arken.gg/images/farms/eth.png',
+      },
+      {
+        name: 'TYR Rune',
+        symbol: 'TYR',
+        oldSymbol: 'TIR',
+        address: '0x125a3e00a9a11317d4d95349e68ba0bc744addc4',
+        chainId: 56,
+        decimals: 18,
+        id: 63,
+        logoURI: 'https://swap.arken.gg/images/farms/tir.png',
+      },
+      {
+        name: 'Nen Rune',
+        symbol: 'NEN',
+        oldSymbol: 'NEF',
+        address: '0xef4f66506aaaeeff6d10775ad6f994105d8f11b4',
+        chainId: 56,
+        decimals: 18,
+        id: 64,
+        logoURI: 'https://swap.arken.gg/images/farms/nef.png',
+      },
+      {
+        name: 'Isa Rune',
+        symbol: 'ISA',
+        oldSymbol: 'ITH',
+        address: '0x098Afb73F809D8Fe145363F802113E3825d7490C',
+        chainId: 56,
+        decimals: 18,
+        id: 65,
+        logoURI: 'https://swap.arken.gg/images/farms/ith.png',
+      },
+      {
+        name: 'Tai Rune',
+        symbol: 'TAI',
+        oldSymbol: 'TAL',
+        address: '0x5DE72A6fca2144Aa134650bbEA92Cc919244F05D',
+        chainId: 56,
+        decimals: 18,
+        id: 66,
+        logoURI: 'https://swap.arken.gg/images/farms/tal.png',
+      },
+      {
+        name: 'Ro Rune',
+        symbol: 'RO',
+        oldSymbol: 'RAL',
+        address: '0x2F25DbD430CdbD1a6eC184c79C56C18918fcc97D',
+        chainId: 56,
+        decimals: 18,
+        id: 67,
+        logoURI: 'https://swap.arken.gg/images/farms/ral.png',
+      },
+      {
+        name: 'Ore Rune',
+        symbol: 'ORE',
+        oldSymbol: 'ORT',
+        address: '0x33bc7539D83C1ADB95119A255134e7B584cd5c59',
+        chainId: 56,
+        decimals: 18,
+        id: 68,
+        logoURI: 'https://swap.arken.gg/images/farms/ort.png',
+      },
+      {
+        name: 'Thal Rune',
+        symbol: 'THAL',
+        oldSymbol: 'THUL',
+        address: '0x1fC5bffCf855B9D7897F1921363547681F6847Aa',
+        chainId: 56,
+        decimals: 18,
+        id: 69,
+        logoURI: 'https://swap.arken.gg/images/farms/thul.png',
+      },
+      {
+        name: 'Ash Rune',
+        symbol: 'ASH',
+        oldSymbol: 'AMN',
+        address: '0x346C03fe8BE489baAAc5CE67e817Ff11fb580F98',
+        chainId: 56,
+        decimals: 18,
+        id: 70,
+        logoURI: 'https://swap.arken.gg/images/farms/amn.png',
+      },
+      {
+        name: 'Solo Rune',
+        symbol: 'SOLO',
+        oldSymbol: 'SOL',
+        address: '0x4ffd3b8ba90f5430cda7f4cc4c0a80df3cd0e495',
+        chainId: 56,
+        decimals: 18,
+        id: 71,
+        logoURI: 'https://swap.arken.gg/images/farms/sol.png',
+      },
+      {
+        name: 'Sen Rune',
+        symbol: 'SEN',
+        oldSymbol: 'SHAEL',
+        address: '0x56DeFe2310109624c20c2E985c3AEa63b9718319',
+        chainId: 56,
+        decimals: 18,
+        id: 72,
+        logoURI: 'https://swap.arken.gg/images/farms/shael.png',
+      },
+      {
+        name: 'Da Rune',
+        symbol: 'DA',
+        oldSymbol: 'DOL',
+        address: '0x94F2E23c7422fa8c5A348a0E6D7C05b0a6C8a5b8',
+        chainId: 56,
+        decimals: 18,
+        id: 73,
+        logoURI: 'https://swap.arken.gg/images/farms/dol.png',
+      },
+      {
+        name: 'Han Rune',
+        symbol: 'HAN',
+        oldSymbol: 'HEL',
+        address: '0x0D3877152BaaC86D42A4123ABBeCd1178d784cC7',
+        chainId: 56,
+        decimals: 18,
+        id: 74,
+        logoURI: 'https://swap.arken.gg/images/farms/hel.png',
+      },
+      {
+        name: 'Ion Rune',
+        symbol: 'ION',
+        oldSymbol: 'IO',
+        address: '0xa00672c2a70E4CD3919afc2043b4b46e95041425',
+        chainId: 56,
+        decimals: 18,
+        id: 75,
+        logoURI: 'https://swap.arken.gg/images/farms/io.png',
+      },
+      {
+        name: 'Luph Rune',
+        symbol: 'LUMP',
+        oldSymbol: 'LUM',
+        address: '0xD481F4eA902e207AAda9Fa093f80d50B19444253',
+        chainId: 56,
+        decimals: 18,
+        id: 76,
+        logoURI: 'https://swap.arken.gg/images/farms/lum.png',
+      },
+      {
+        name: 'Ka Rune',
+        symbol: 'KA',
+        oldSymbol: 'KO',
+        address: '0x2a74b7d7d44025Bcc344E7dA80d542e7b0586330',
+        chainId: 56,
+        decimals: 18,
+        id: 77,
+        logoURI: 'https://swap.arken.gg/images/farms/ko.png',
+      },
+      {
+        name: 'Fus Rune',
+        symbol: 'FUS',
+        oldSymbol: 'FAL',
+        address: '0xcd06c743a1628fB02C15946a56037CD7020F3Bd2',
+        chainId: 56,
+        decimals: 18,
+        id: 78,
+        logoURI: 'https://swap.arken.gg/images/farms/fal.png',
+      },
+      {
+        name: 'Lex Rune',
+        symbol: 'LEX',
+        oldSymbol: 'LEM',
+        address: '0xFF0682D330C7a6381214fa541d8D288dD0D098ED',
+        chainId: 56,
+        decimals: 18,
+        id: 79,
+        logoURI: 'https://swap.arken.gg/images/farms/lem.png',
+      },
+      {
+        name: 'Pai Rune',
+        symbol: 'PAI',
+        oldSymbol: 'PUL',
+        address: '0xfa3f14C55adaDDC2035083146c1cF768bD035E06',
+        chainId: 56,
+        decimals: 18,
+        id: 80,
+        logoURI: 'https://swap.arken.gg/images/farms/pul.png',
+      },
+      {
+        name: 'Uln Rune',
+        symbol: 'ULN',
+        oldSymbol: 'UM',
+        address: '0x7e8a6d548a68339481c500f2B56367698A9F7213',
+        chainId: 56,
+        decimals: 18,
+        id: 81,
+        logoURI: 'https://swap.arken.gg/images/farms/um.png',
+      },
+      {
+        name: 'Mor Rune',
+        symbol: 'MOR',
+        oldSymbol: 'MAL',
+        address: '0xdfFeB26FbaCF79823C50a4e7DCF69378667c9941',
+        chainId: 56,
+        decimals: 18,
+        id: 82,
+        logoURI: 'https://swap.arken.gg/images/farms/mal.png',
+      },
+      {
+        name: 'Isk Rune',
+        symbol: 'ISK',
+        oldSymbol: 'IST',
+        address: '0x90132915EbDe0CF93283D55AB3fBBA15449f95A9',
+        chainId: 56,
+        decimals: 18,
+        id: 83,
+        logoURI: 'https://swap.arken.gg/images/farms/ist.png',
+      },
+      {
+        name: 'Gon Rune',
+        symbol: 'GON',
+        oldSymbol: 'GUL',
+        address: '0xa89805AB2ca5B70c89B74b3B0346a88a5B8eAc85',
+        chainId: 56,
+        decimals: 18,
+        id: 84,
+        logoURI: 'https://swap.arken.gg/images/farms/gul.png',
+      },
+      {
+        name: 'Val Rune',
+        symbol: 'VAL',
+        oldSymbol: 'VEX',
+        address: '0x60E3538610e9f4974A36670842044CB4936e5232',
+        chainId: 56,
+        decimals: 18,
+        id: 85,
+        logoURI: 'https://swap.arken.gg/images/farms/vex.png',
+      },
+      {
+        name: 'Oh Rune',
+        symbol: 'OH',
+        oldSymbol: 'OHM',
+        address: '0x9449D198AB998388a577D4eBfDa4656D9fa3468a',
+        chainId: 56,
+        decimals: 18,
+        id: 86,
+        logoURI: 'https://swap.arken.gg/images/farms/ohm.png',
+      },
+      {
+        name: 'Lor Rune',
+        symbol: 'LO',
+        oldSymbol: 'LO',
+        address: '0x08fb6740Cc5170e48B2Ad8Cc07422d3302EF5e78',
+        chainId: 56,
+        decimals: 18,
+        id: 87,
+        logoURI: 'https://swap.arken.gg/images/farms/lo.png',
+      },
+      {
+        name: 'Su Rune',
+        symbol: 'SU',
+        oldSymbol: 'SUR',
+        address: '0x191472E8E899E98048AeB82faa1AE4Ec3801b936',
+        chainId: 56,
+        decimals: 18,
+        id: 88,
+        logoURI: 'https://swap.arken.gg/images/farms/sur.png',
+      },
+      {
+        name: 'Beru Rune',
+        symbol: 'BERU',
+        oldSymbol: 'BER',
+        address: '0x1656f8d69F2354a9989Fe705c0107190A4815287',
+        chainId: 56,
+        decimals: 18,
+        id: 89,
+        logoURI: 'https://swap.arken.gg/images/farms/ber.png',
+      },
+      {
+        name: 'Jua Rune',
+        symbol: 'JUA',
+        oldSymbol: 'JAH',
+        address: '0xBC996F2f6703cc13AA494F846A1c563A4A0f1A80',
+        chainId: 56,
+        decimals: 18,
+        id: 90,
+        logoURI: 'https://swap.arken.gg/images/farms/jah.png',
+      },
+      {
+        name: 'Chin Rune',
+        symbol: 'CHIN',
+        oldSymbol: 'CHAM',
+        address: '0xfb134f1721bc602Eb14148f89e1225dC7C93D8d4',
+        chainId: 56,
+        decimals: 18,
+        id: 91,
+        logoURI: 'https://swap.arken.gg/images/farms/cham.png',
+      },
+      {
+        name: 'Zel Rune',
+        symbol: 'ZEL',
+        oldSymbol: 'ZOD',
+        address: '0x3e151ca82b3686f555c381530732df1cfc3c7890',
+        chainId: 56,
+        decimals: 18,
+        id: 92,
+        logoURI: 'https://swap.arken.gg/images/farms/zod.png',
+      },
+      {
+        name: 'Tato Rune',
+        symbol: 'TATO',
+        oldSymbol: 'TATO',
+        address: '',
+        chainId: 56,
+        decimals: 18,
+        id: 92,
+        logoURI: 'https://swap.arken.gg/images/farms/tato.png',
+      },
+    ]
+
+    // @ts-ignore
+    for (const item of runes) {
+      if (!item.id) continue
+
+      this.oldCache.Asset[item.id] = item
+
+      if (this.cache.Asset[item.name]) {
+        console.log('Asset ' + item.name + ' already exists')
+        continue
+      }
+
+      console.log('Asset creating ', item.name)
+
+      this.cache.Asset[item.name] = await this.model.Asset.findOne({
+        key: item.id + '',
+      })
+
+      if (!this.cache.Asset[item.name])
+        this.cache.Asset[item.name] = await this.model.Asset.create({
+          applicationId: this.cache.Application.Arken.id,
+          chainId: this.cache.Chain.BSC.id,
+          name: item.name,
+          key: item.id + '',
+          meta: item,
+          status: 'Active',
+          uri:
+            'https://arken.gg/item/' + item.name.replace(/ /gi, '-').replace("'", '').toLowerCase(),
+          type: 'ERC-721',
+          standards: [this.cache.AssetStandard['ARX-1']],
+        })
+
+      // console.log(asset.id)
+    }
+  }
+
+  async migrateAssetStandards() {
+    const standards = ['ARX-1', 'ERC-721', 'ERC-1155']
+
+    for (const name of standards) {
+      this.cache.AssetStandard[name] = await this.model.AssetStandard.findOne({
+        key: name + '',
+      })
+
+      if (!this.cache.AssetStandard[name]) {
+        this.cache.AssetStandard[name] = await this.model.AssetStandard.create({
+          applicationId: this.cache.Application.Arken.id,
+          name: name,
+          key: name + '',
+          status: 'Active',
+          parent: name === 'ARX-1' ? 'ERC-721' : undefined,
+        })
+      }
     }
   }
 
@@ -437,7 +1145,7 @@ class App {
     // check trades
     // const profile = await prisma.profile.create({
     //   data: {
-    //     metaverseId: this.cache.Metaverse.Arken.id,
+    //     omniverseId: this.cache.Omniverse.Arken.id,
     //
     //     name: item.name,
     //     key: item.id + '',
@@ -510,48 +1218,164 @@ class App {
       const trades = profile.meta?.market.trades
       if (!trades || !Array.isArray(trades) || trades.length === 0) continue
       console.log(trades)
-      return
+      // return
     }
     // @ts-ignore
-    for (const oldTrade of oldTrades) {
-      oldTrade.version = 1
+    for (const trade of trades) {
       const buyer =
-        oldTrade.buyer !== '0x0000000000000000000000000000000000000000'
-          ? await this.model.Profile.findOne({
-              address: oldTrade.buyer,
-            })
+        trade.buyer !== '0x0000000000000000000000000000000000000000'
+          ? await this.model.Profile.findOne({ address: trade.buyer }).exec()
           : null
-      const owner = await prisma.profile.findFirst({
-        where: { address: { equals: oldTrade.owner } },
-      })
+      const owner = await this.model.Profile.findOne({ address: trade.seller }).exec()
 
       // cant find user? look in filesystem
-      const decodedItem = decodeItem(oldTrade.tokenId)
+      const decodedItem = decodeItem(trade.tokenId)
 
-      this.cache.Item[decodedItem.token] = await this.model.Item.create({
-        chain: this.cache.Chain.BSC.id,
-        assetId: this.cache.Asset[decodedItem.name].id,
-        key: decodedItem.token,
-        meta: decodedItem,
-        name: decodedItem.name,
-        token: decodedItem.token,
-        status: 'Active',
-      })
+      this.cache.Item[decodedItem.tokenId] = await this.model.Item.findOne({
+        key: decodedItem.tokenId,
+      }).exec()
+
+      // TODO: create item based on token
+      // if its multiple items for a trade, create an item that groups them together.. a Trade Box
+
+      if (!this.cache.Item[decodedItem.tokenId])
+        this.cache.Item[decodedItem.tokenId] = await this.model.Item.create({
+          applicationId: this.cache.Application.Arken.id,
+          chainId: this.cache.Chain.BSC.id,
+          assetId: this.cache.Asset[decodedItem.name].id,
+          key: decodedItem.tokenId,
+          meta: decodedItem,
+          name: decodedItem.name,
+          token: decodedItem.tokenId,
+          status: 'Active',
+          materialId: this.cache.ItemMaterial[decodedItem.material]?.id,
+          skinId: this.cache.ItemSkin[decodedItem.skin]?.id, // TODO: convert the skin mapper stuff to items, and get the skin item from there
+          recipeId: this.cache.ItemRecipe[decodedItem.recipe]?.id,
+          typeId: this.cache.ItemType[decodedItem.type]?.id,
+          subTypeId: this.cache.ItemSubType[decodedItem.subType]?.id,
+          specificTypeId: this.cache.ItemSpecificType[decodedItem.specificType]?.id,
+          rarityId: this.cache.ItemRarity[decodedItem.rarity]?.id,
+          slotId: this.cache.ItemSlot[decodedItem.slot]?.id,
+          setId: this.cache.ItemSet[decodedItem.set]?.id,
+          attributes: [],
+          quantity: 1,
+          slotX: undefined,
+          slotY: undefined,
+          // properties: z.record(z.any()).optional(),
+          // type: z.string().default('bag'), // stash, bag, equipment, etc.
+          // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
+          items: [],
+          capacity: undefined,
+          points: 0,
+        })
 
       // const asset = find asset by trade.item.id + ''
-      this.cache.Trade[oldTrade.id + ''] = await this.model.Trade.create({
-        name: oldTrade.name,
-        value: oldTrade.address,
-        ownerId: owner.id,
-        buyerId: buyer?.id,
-        key: oldTrade.id + '',
-        meta: oldTrade,
-        status: {
-          available: 'Available',
-          delisted: 'Delisted',
-          sold: 'Sold',
-        }[oldTrade.status],
+      this.cache.Trade[trade.id + ''] = await this.model.Trade.findOne({
+        key: trade.id + '',
       })
+
+      if (!this.cache.Trade[trade.id + '']) {
+        this.cache.Trade[trade.id + ''] = await this.model.Trade.create({
+          applicationId: this.cache.Application.Arken.id,
+          ownerId: owner.id,
+          buyerId: buyer?.id,
+          key: trade.id + '',
+          itemId: this.cache.Item[decodedItem.tokenId].id,
+          meta: {
+            ...trade,
+            contractVersion: 2,
+            contractAddress: '0xa9b9195b19963f2d72a7f56bad3705ba536cdb66',
+          },
+          status: {
+            available: 'Available',
+            delisted: 'Delisted',
+            sold: 'Sold',
+          }[trade.status],
+        })
+      }
+    }
+  }
+
+  async migrateOldTrades() {
+    // {"market": {"trades": []}, "points": 1, "address": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "guildId": 2, "premium": {"locked": 0, "features": [], "unlocked": 0}, "rewards": {"items": [], "runes": {}}, "daoVotes": [], "holdings": {}, "username": "Harry", "evolution": {}, "inventory": {"items": [{"id": 1, "from": "0x6Bf051ce847A0EBBc10fA22884C01D550BD40269", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 8, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 8, "variant": 1, "attributeId": 1}, {"value": 2, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 1}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Magical", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001100810021001111111", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649762142003, "isRetired": true, "shorthand": "8-2", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 8, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 2, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.44, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110081002100111...111", "isUnequipable": false, "isTransferable": true}, {"id": 1, "from": "0x85C07b6a475Ee19218D0ef9C278C7e58715Af842", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 14, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 14, "variant": 1, "attributeId": 1}, {"value": 1, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 0}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Rare", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001101410011001111101", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649764095769, "isRetired": true, "shorthand": "14-1", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 14, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 1, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.85, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110141001100111...101", "isUnequipable": false, "isTransferable": true}, {"id": 3, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000030500020002000024182", "createdAt": 1649763909508, "perfection": 0.5}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10020000201000500240030991", "createdAt": 1649763909610, "perfection": 0.4}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030031002432194", "createdAt": 1649763909691, "perfection": 0.45}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100040033004045827", "createdAt": 1649763909821, "perfection": 0.3}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030034002847742", "createdAt": 1649763909914, "perfection": 0.43}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "100200002010006003200287488", "createdAt": 1649763909984, "perfection": 0.65}, {"id": 4, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10010000410001000120319017", "createdAt": 1649763912928, "perfection": 1}]}, "characters": [{"id": 7, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "699", "transferredAt": 1627276078338}], "permissions": {"admin": {}}, "achievements": [1], "joinedGuildAt": 1627274005785, "rewardHistory": [], "lastGamePlayed": 0, "lifetimeRewards": {"items": [], "runes": {}}, "craftedItemCount": 7, "equippedItemCount": 0, "inventoryItemCount": 0, "transferredInCount": 0, "transferredOutCount": 2, "marketTradeSoldCount": 0, "guildMembershipTokenId": 699, "marketTradeListedCount": 0, "isGuildMembershipActive": true}
+    // {
+    //   "id": 1,
+    //   "seller": "0x576a83f7B93df7D6BE68A3cfF148eDF9CF77D810",
+    //   "buyer": "0x0000000000000000000000000000000000000000",
+    //   "tokenId": "10010000210071037103230819",
+    //   "price": 0.5,
+    //   "status": "available",
+    //   "hotness": 0,
+    //   "createdAt": 1623829064720,
+    //   "updatedAt": 1623829064720,
+    //   "lastBlock": 7496648,
+    //   "blockNumber": 7496648
+    // },
+    const profiles = await this.model.Profile.find()
+    for (const profile of profiles) {
+      // @ts-ignore
+      const trades = profile.meta?.market?.trades
+      if (!trades || !Array.isArray(trades) || trades.length === 0) continue
+      console.log(trades)
+      // return
+    }
+    // @ts-ignore
+    for (const trade of oldTrades) {
+      const buyer =
+        trade.buyer !== '0x0000000000000000000000000000000000000000'
+          ? await this.model.Profile.findOne({ address: trade.buyer }).exec()
+          : null
+      const owner = await this.model.Profile.findOne({ address: trade.seller }).exec()
+      console.log(trade)
+      if (!owner) throw new Error('Profile owner not found ' + trade.seller)
+
+      // cant find user? look in filesystem
+      const decodedItem = decodeItem(trade.tokenId)
+
+      console.log('Creating item', decodedItem.name)
+
+      this.cache.Item[decodedItem.tokenId] = await this.model.Item.findOne({
+        key: decodedItem.tokenId,
+      }).exec()
+
+      console.log(this.cache.Application.Arken, this.cache.Chain.BSC)
+
+      // TODO: needs lots of love
+      if (!this.cache.Item[decodedItem.tokenId])
+        this.cache.Item[decodedItem.tokenId] = await this.model.Item.create({
+          applicationId: this.cache.Application.Arken.id,
+          chainId: this.cache.Chain.BSC.id,
+          assetId: this.cache.Asset[decodedItem.name].id,
+          key: decodedItem.tokenId,
+          meta: decodedItem,
+          name: decodedItem.name,
+          token: decodedItem.tokenId,
+          status: 'Active',
+        })
+
+      // const asset = find asset by trade.item.id + ''
+      this.cache.Trade[trade.id + ''] = await this.model.Trade.findOne({
+        key: trade.id + '',
+      }).exec()
+
+      if (!this.cache.Trade[trade.id + ''])
+        this.cache.Trade[trade.id + ''] = await this.model.Trade.create({
+          applicationId: this.cache.Application.Arken.id,
+          ownerId: owner.id,
+          buyerId: buyer?.id,
+          itemId: this.cache.Item[decodedItem.tokenId].id,
+          key: trade.id + '',
+          meta: {
+            ...trade,
+            contractVersion: 1,
+            contractAddress: '0xdAE69A43bC73e662095b488dbDDD1D3aBA59c1FF',
+          },
+          status: {
+            available: 'Available',
+            delisted: 'Delisted',
+            sold: 'Sold',
+          }[trade.status],
+        })
     }
   }
 
@@ -571,22 +1395,23 @@ class App {
     for (const team of teams) {
       if (!this.cache.Team[team.name]) {
         this.cache.Team[team.name] = team
-        this.oldCache.Team[team.meta.id] = team
+        this.cache.Team[team.meta.id] = team
       }
     }
 
     for (const guild of guildsData) {
-      if (this.oldCache.Team[guild.id]) {
-        console.log('Guild with name ' + this.oldCache.Team[guild.id].name + ' already exists.')
+      if (this.cache.Team[guild.id]) {
+        console.log('Guild with name ' + this.cache.Team[guild.id].name + ' already exists.')
         continue
       }
 
       const details = require('../../data/guilds/' + guild.id + '/overview.json')
 
-      this.cache.Team[details.name] = await this.model.Team.find({ name: details.name })
+      this.cache.Team[details.name] = await this.model.Team.findOne({ key: details.name })
 
       if (!this.cache.Team[details.name]) {
         this.cache.Team[details.name] = await this.model.Team.create({
+          applicationId: this.cache.Application.Arken.id,
           name: details.name,
           description: details.description,
           key: details.name,
@@ -595,11 +1420,12 @@ class App {
         })
       }
 
-      this.oldCache.Team[guild.id] = this.cache.Team[details.name]
+      this.cache.Team[guild.id] = this.cache.Team[details.name]
 
       console.log('Guild with name ' + details.name)
 
-      const memberDetails = require('../../data/guilds/' + guild.id + '/memberDetails.json')
+      // TODO
+      const memberDetails = require('../data/guilds/' + guild.id + '/memberDetails.json')
 
       // {
       //   "address": "0xa94210Bce97C665aCd1474B6fC4e9817a456EECd",
@@ -609,19 +1435,32 @@ class App {
       //   "isActive": true,
       //   "characterId": 6
       // },
-      for (const member of memberDetails) {
-        const profile = await this.model.Profile.findOne({ address: member.address })
+      // TODO: insert character?
+      // for (const member of memberDetails) {
+      //   const profile = await this.model.Profile.findOne({ address: member.address })
 
-        if (profile) {
-          console.log('Character with guild ' + details.name + ' for profile ' + member.address)
+      //   if (profile) {
+      //     console.log('Character with guild ' + details.name + ' for profile ' + member.address)
 
-          this.cache.Character[profile.id] = await this.model.Character.create({
-            teamId: this.cache.Team[details.name].id,
-            profileId: profile.id,
-            classId: this.cache.Class[member.characterId].id,
-          })
-        }
-      }
+      //     this.cache.Character[profile.id] = await this.model.Character.findOne({
+      //       token: profile.id,
+      //     }).exec()
+
+      //     if (!this.cache.Character[profile.id]) {
+      //       this.cache.Character[profile.id] = await this.model.Character.create({
+      //         applicationId: this.cache.Application.Arken.id,
+      //         name: character.name,
+      //         key: profile.id,
+      //         meta: character,
+      //         status: 'Active',
+      //         ownerId: newProfile.id,
+      //         token: profile.id,
+      //         classId: this.cache.CharacterClass[character.id],
+      //       })
+      //       console.log(`Inserted character with token: ${profile.id}`)
+      //     }
+      //   }
+      // }
     }
 
     // Use profiles to generate characters
@@ -648,13 +1487,6 @@ class App {
     //   "branches": { "1": { "description": ["Craft 1 Runeform"] }, "2": { "description": "Craft 1 Runeform" } }
     // },
 
-    const metaverse = await this.model.Metaverse.findOne({ name: 'Arken' })
-
-    if (!metaverse) {
-      console.error('Metaverse not found')
-      return
-    }
-
     for (const item of achievements) {
       this.oldCache.Achievement[item.id] = item
 
@@ -662,21 +1494,20 @@ class App {
 
       // Check if the achievement already exists in MongoDB
       this.cache.Achievement[item.key] = await this.model.Achievement.findOne({ key: item.key })
-      if (this.cache.Achievement[item.key]) {
-        console.log(`Achievement with key ${item.key} already exists.`)
-        continue
+      if (!this.cache.Achievement[item.key]) {
+        console.log(`Inserted achievement with key: ${item.key}`)
+        // Insert the achievement into MongoDB
+        this.cache.Achievement[item.key] = await this.model.Achievement.create({
+          applicationId: this.cache.Application.Arken.id,
+          name: item.name,
+          description: '',
+          key: item.key,
+          meta: item,
+          status: item.isEnabled ? 'Active' : 'Pending',
+        })
       }
 
-      // Insert the achievement into MongoDB
-      this.cache.Achievement[item.key] = await this.model.Achievement.create({
-        name: item.name,
-        description: '',
-        key: item.key,
-        meta: item,
-        status: item.isEnabled ? 'Active' : 'Pending',
-      })
-
-      console.log(`Inserted achievement with key: ${item.key}`)
+      this.cache.Achievement[item.id] = this.cache.Achievement[item.key]
     }
   }
 
@@ -713,6 +1544,7 @@ class App {
 
       // Insert the area into MongoDB
       this.cache.Area[item.name] = await this.model.Area.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.id + '',
@@ -740,7 +1572,7 @@ class App {
       if (!item.name) continue
 
       this.cache.CharacterAttribute[item.name] = await this.model.CharacterAttribute.findOne({
-        name: item.name,
+        key: item.id + '',
       })
 
       if (this.cache.CharacterAttribute[item.name]) {
@@ -749,6 +1581,7 @@ class App {
       }
 
       this.cache.CharacterAttribute[item.name] = await this.model.CharacterAttribute.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.id + '',
@@ -767,6 +1600,7 @@ class App {
       if (existingItem) continue
 
       const newSkillMod = await this.model.SkillMod.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -787,6 +1621,7 @@ class App {
       if (existingItem) continue
 
       const newSkillClassification = await this.model.SkillClassification.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -807,6 +1642,7 @@ class App {
       if (existingItem) continue
 
       const newSkillCondition = await this.model.SkillCondition.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -843,6 +1679,7 @@ class App {
       if (existingItem) continue
 
       const newSkillStatusEffect = await this.model.SkillStatusEffect.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -865,6 +1702,7 @@ class App {
       if (existingItem) continue
 
       const newSkillTree = await this.model.SkillTree.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -885,6 +1723,7 @@ class App {
       if (existingItem) continue
 
       const newSkillTreeNode = await this.model.SkillTreeNode.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name + '',
@@ -905,6 +1744,7 @@ class App {
       if (existingItem) continue
 
       const newSkill = await this.model.Skill.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -929,6 +1769,7 @@ class App {
       if (existingItem) continue
 
       const newItemTransmuteRule = await this.model.ItemTransmuteRule.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -949,6 +1790,7 @@ class App {
       if (existingItem) continue
 
       const newCharacterTitle = await this.model.CharacterTitle.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -969,6 +1811,7 @@ class App {
       if (existingItem) continue
 
       const newCharacterType = await this.model.CharacterType.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.id + '',
@@ -987,6 +1830,7 @@ class App {
       if (existingItem) continue
 
       const newAct = await this.model.Act.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.id + '',
@@ -1025,6 +1869,7 @@ class App {
       if (existingItem) continue
 
       const newPlanet = await this.model.Planet.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.id + '',
@@ -1047,6 +1892,7 @@ class App {
       }
 
       this.cache.SolarSystem[item.name] = await this.model.SolarSystem.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.id + '',
@@ -1068,6 +1914,7 @@ class App {
       }
 
       this.cache.Lore[item.name] = await this.model.Lore.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.id + '',
@@ -1083,7 +1930,7 @@ class App {
       this.cache.Game[item.name] = await this.model.Game.findOne({ name: item.name })
       // "uuid": "recHYXHqb8LY3DGsJ",
       // "id": 1,
-      // "name": "Arken: Runic Raids",
+      // "name": "Runic Raids",
       // "link": "https://arken.gg/game/raids",
       // "primaryColor": "red",
       // "secondaryColor": "white",
@@ -1091,7 +1938,7 @@ class App {
       // "shortDescription": "Arken is an addicting dark fantasy RPG. Play and earn runes (crypto) battling players and AI. Use runes to craft gear (NFTs) to make your character more powerful.",
       // "description": "The Future DeFi and Gaming Ecosystem\n\nHybrid gaming ecosystem which utilizes NFT game assets, seamless integration into a conventional game.\n",
       // "storyline": "",
-      // "cmcDescription": "## What is Arken Realm Shards (RXS)?\n\n[Arken Realms](https://coinmarketcap.com/currencies/rxs/) is an open-ended dark fantasy gaming universe built on [Binance Smart Chain](https://coinmarketcap.com/alexandria/article/what-is-binance-smart-chain), where players can battle, join a guild, collect powerful weapons, and earn [NFTs](https://coinmarketcap.com/alexandria/glossary/non-fungible-token) and cryptocurrency in the form of runes by playing.\n\nRunes are small and rare stones inscribed with magical glyphs needed to craft Runeforms (NFTs), weapons, and armor. 33 different Runes are distributed to players over two years. Each Rune has a supply of 100,000 or less, and players can earn Runes by competing against other players, joining guilds, participating in yield farms, and community participation.\n\nThe Rune universe consists of Second Wind, a play-to-earn game, Arken: Runic Raids, the yield farm, Runeforms (NFTs), and the Infinite Arena Arena, a player-versus-player game. The team is also developing the Heart of the Oasis, an MMORPG that will be launched in 2022. Currently, Arken is running on BSC, but the team sees the universe as blockchain-agnostic and is building a bridge to [Polygon](https://coinmarketcap.com/currencies/polygon/).\n\n## Who Are the Founders of Rune?\n\nArken's founders are anonymous. The team chose to stay anonymous to protect itself, its associates, and users from “archaic legislation imposed by governments who won’t understand the emerging DeFi field for years to come.” The team alludes to “Binzy,” which is their fill-in for the person(s) behind Rune, a real software engineer with 20 years of experience and connections in the crypto world.\nIn total, the team consists of 12 people: the lead dev, four unity developers, a React developer, a Solidity developer, two consultant developers, two consultant project managers, one marketing manager, one community manager, four mods and some advisors.\n\n## What Makes Rune Unique?\n\nRune offers an attractive mix of blockchain gaming, NFTs, and elements from decentralized finance. Its universe is split into four different parts.\n\nSecond Wind is a play-to-earn game and was the first game built for the ecosystem. You start as a dragonling that can fly around and eat sprites to evolve into a dragon eventually. One round in the web browser-based game lasts five minutes, and players can earn crypto as a reward.\n\nArken: Runic Raids is the yield farm that attracts liquidity to the ecosystem. You can acquire runes through providing liquidity and raiding farms, i.e., yield farming. The team promises that since the supply of runes is limited, their price should find a bottom. Moreover, each rune has its specific utility, and runes can also be combined to build Runeforms. Furthermore, for 2022, an online RPG built around runes is in development.\n\nRuneforms (NFTs) are unique weapons and armor. Each Runeform is suitable for a specific hero class (seven different hero classes exist) or style of play. Runeforms improve a hero’s capabilities in battle and offer improved farming and merchant abilities. Runeforms are shared, collected, and traded in the Arken Market and players will soon be able to lend them to others. Runeforms are crafted from runes.\n\nFinally, the Infinite Arena Arena is a player-versus-player, web-based 2D topdown game, where you battle your opponents for prizes. Once you defeat an opponent, they go back to the beginning while you can continue the path that goes on infinitely. The last one standing after one minute of battle claims a reward in the form of crypto or NFTs. Every 15 minutes, you enter a new arena.\n",
+      // "cmcDescription": "## What is Arken Realm Shards (RXS)?\n\n[Arken Realms](https://coinmarketcap.com/currencies/rxs/) is an open-ended dark fantasy gaming universe built on [Binance Smart Chain](https://coinmarketcap.com/alexandria/article/what-is-binance-smart-chain), where players can battle, join a guild, collect powerful weapons, and earn [NFTs](https://coinmarketcap.com/alexandria/glossary/non-fungible-token) and cryptocurrency in the form of runes by playing.\n\nRunes are small and rare stones inscribed with magical glyphs needed to craft Runeforms (NFTs), weapons, and armor. 33 different Runes are distributed to players over two years. Each Rune has a supply of 100,000 or less, and players can earn Runes by competing against other players, joining guilds, participating in yield farms, and community participation.\n\nThe Rune universe consists of Evolution Isles, a play-to-earn game, Runic Raids, the yield farm, Runeforms (NFTs), and the Infinite Arena Arena, a player-versus-player game. The team is also developing the Heart of the Oasis, an MMORPG that will be launched in 2022. Currently, Arken is running on BSC, but the team sees the universe as blockchain-agnostic and is building a bridge to [Polygon](https://coinmarketcap.com/currencies/polygon/).\n\n## Who Are the Founders of Rune?\n\nArken's founders are anonymous. The team chose to stay anonymous to protect itself, its associates, and users from “archaic legislation imposed by governments who won’t understand the emerging DeFi field for years to come.” The team alludes to “Binzy,” which is their fill-in for the person(s) behind Rune, a real software engineer with 20 years of experience and connections in the crypto world.\nIn total, the team consists of 12 people: the lead dev, four unity developers, a React developer, a Solidity developer, two consultant developers, two consultant project managers, one marketing manager, one community manager, four mods and some advisors.\n\n## What Makes Rune Unique?\n\nRune offers an attractive mix of blockchain gaming, NFTs, and elements from decentralized finance. Its universe is split into four different parts.\n\nEvolution Isles is a play-to-earn game and was the first game built for the ecosystem. You start as a dragonling that can fly around and eat sprites to evolve into a dragon eventually. One round in the web browser-based game lasts five minutes, and players can earn crypto as a reward.\n\nRunic Raids is the yield farm that attracts liquidity to the ecosystem. You can acquire runes through providing liquidity and raiding farms, i.e., yield farming. The team promises that since the supply of runes is limited, their price should find a bottom. Moreover, each rune has its specific utility, and runes can also be combined to build Runeforms. Furthermore, for 2022, an online RPG built around runes is in development.\n\nRuneforms (NFTs) are unique weapons and armor. Each Runeform is suitable for a specific hero class (seven different hero classes exist) or style of play. Runeforms improve a hero’s capabilities in battle and offer improved farming and merchant abilities. Runeforms are shared, collected, and traded in the Arken Market and players will soon be able to lend them to others. Runeforms are crafted from runes.\n\nFinally, the Infinite Arena Arena is a player-versus-player, web-based 2D topdown game, where you battle your opponents for prizes. Once you defeat an opponent, they go back to the beginning while you can continue the path that goes on infinitely. The last one standing after one minute of battle claims a reward in the form of crypto or NFTs. Every 15 minutes, you enter a new arena.\n",
       // "contracts": "- [0x4596e527eba13a27cd02576d023695eab0a6b210](https://www.bscscan.com/address/0x4596e527eba13a27cd02576d023695eab0a6b210)\n- BSC\n- [0x5fE24631136D570D12920C9Fa0FEcaDA84E47673](https://www.bscscan.com/address/0x5fE24631136D570D12920C9Fa0FEcaDA84E47673)\n- BSC\n- [0xB615023dfa06944B06c4caDB308E6009907E8f4d](https://www.bscscan.com/address/0xB615023dfa06944B06c4caDB308E6009907E8f4d)\n- BSC\n- [0xdAE69A43bC73e662095b488dbDDD1D3aBA59c1FF](https://www.bscscan.com/address/0xdAE69A43bC73e662095b488dbDDD1D3aBA59c1FF)\n- BSC\n- [0xe97a1b9f5d4b849f0d78f58adb7dd91e90e0fb40](https://www.bscscan.com/address/0xe97a1b9f5d4b849f0d78f58adb7dd91e90e0fb40)\n- BSC\n- [0xa9776b590bfc2f956711b3419910a5ec1f63153e](https://www.bscscan.com/address/0xa9776b590bfc2f956711b3419910a5ec1f63153e)\n- BSC\n- [0xcfA857d6EC2F59b050D7296FbcA8a91D061451f3](https://www.bscscan.com/address/0xcfA857d6EC2F59b050D7296FbcA8a91D061451f3)\n- BSC\n- [0x6122F8500e7d602629FeA714FEA33BC2B2e0E2ac](https://www.bscscan.com/address/0x6122F8500e7d602629FeA714FEA33BC2B2e0E2ac)\n- BSC\n- [0x3e151ca82b3686f555c381530732df1cfc3c7890](https://www.bscscan.com/address/0x3e151ca82b3686f555c381530732df1cfc3c7890)\n- BSC\n- [0x2a74b7d7d44025bcc344e7da80d542e7b0586330](https://www.bscscan.com/address/0x2a74b7d7d44025bcc344e7da80d542e7b0586330)\n- BSC\n- [0x60e3538610e9f4974a36670842044cb4936e5232](https://www.bscscan.com/address/0x60e3538610e9f4974a36670842044cb4936e5232)\n- BSC\n- [0x2098fef7eeae592038f4f3c4b008515fed0d5886](https://www.bscscan.com/address/0x2098fef7eeae592038f4f3c4b008515fed0d5886)\n- BSC\n\n"
 
       // to:
@@ -1125,7 +1972,7 @@ class App {
 
         if (!this.cache.Application[item.name]) {
           this.cache.Application[item.name] = await this.model.Application.create({
-            metaverseId: this.cache.Metaverse.Arken.id,
+            omniverseId: this.cache.Omniverse.Arken.id,
             name: item.name,
             key: item.name,
             status: 'Active',
@@ -1140,7 +1987,7 @@ class App {
 
         if (!this.cache.Product[item.name]) {
           this.cache.Product[item.name] = await this.model.Product.create({
-            applicationId: this.cache.Application[this.cache.Game[item.name].applicationId].id, // TODO?? this.cache.Game[item.name].applicationId
+            applicationId: this.cache.Application.Arken.id,
             name: item.name,
             key: item.name,
             status: 'Active',
@@ -1148,14 +1995,23 @@ class App {
         }
       }
 
-      this.cache.Game[item.name] = await this.model.Game.create({
-        productId: this.cache.Game[item.name].id,
-        name: item.name,
-        description: item.description,
-        key: item.name,
-        meta: item,
-        status: 'Active',
-      })
+      if (!this.cache.Game[item.name]) {
+        this.cache.Game[item.name] = await this.model.Game.findOne({
+          name: item.name,
+        }).exec()
+
+        if (!this.cache.Game[item.name]) {
+          this.cache.Game[item.name] = await this.model.Game.create({
+            applicationId: this.cache.Application.Arken.id,
+            productId: this.cache.Game[item.name].id,
+            name: item.name,
+            description: item.description,
+            key: item.name,
+            meta: item,
+            status: 'Active',
+          })
+        }
+      }
     }
   }
 
@@ -1182,6 +2038,7 @@ class App {
 
       // Insert the game guide into MongoDB
       this.cache.Guide[item.uuid] = await this.model.Guide.create({
+        applicationId: this.cache.Application.Arken.id,
         gameId: this.gameNumberToGameId(item.game),
         name: item.name,
         description: '',
@@ -1210,6 +2067,7 @@ class App {
       }
 
       this.cache.CharacterClass[item.id] = await this.model.CharacterClass.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.name,
@@ -1232,6 +2090,7 @@ class App {
       }
 
       this.cache.CharacterFaction[item.id] = await this.model.CharacterFaction.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.name,
@@ -1292,6 +2151,7 @@ class App {
       }
 
       this.cache.AreaNameChoice[item.name] = await this.model.AreaNameChoice.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         key: item.id + '',
         meta: item,
@@ -1315,6 +2175,7 @@ class App {
       }
 
       this.cache.CharacterNameChoice[item.name] = await this.model.CharacterNameChoice.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         key: item.id + '',
         meta: item,
@@ -1377,6 +2238,7 @@ class App {
       }
 
       this.cache.CharacterRace[item.name] = await this.model.CharacterRace.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.name,
@@ -1400,6 +2262,7 @@ class App {
       }
 
       this.cache.Energy[item.name] = await this.model.Energy.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.name,
@@ -1422,6 +2285,7 @@ class App {
       }
 
       this.cache.Npc[item.title] = await this.model.Npc.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.title,
         description: item.description,
         key: item.title,
@@ -1487,6 +2351,7 @@ class App {
       }
 
       this.cache.Biome[item.name] = await this.model.Biome.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.name,
@@ -1513,6 +2378,7 @@ class App {
       }
 
       this.cache.BiomeFeature[item.name] = await this.model.BiomeFeature.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1539,6 +2405,7 @@ class App {
       }
 
       this.cache.ItemSpecificType[item.name] = await this.model.ItemType.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1563,6 +2430,7 @@ class App {
       }
 
       this.cache.ItemType[item.name] = await this.model.ItemType.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1635,6 +2503,7 @@ class App {
       }
 
       this.cache.ItemSlot[item.name] = await this.model.ItemSlot.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1659,6 +2528,7 @@ class App {
       }
 
       this.cache.ItemSubType[item.name] = await this.model.ItemSubType.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1685,6 +2555,7 @@ class App {
       }
 
       this.cache.ItemMaterial[item.name] = await this.model.ItemMaterial.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1705,6 +2576,7 @@ class App {
       }
 
       this.cache.ItemRarity[item.name] = await this.model.ItemRarity.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1727,6 +2599,7 @@ class App {
       }
 
       this.cache.ItemRecipe[item.name] = await this.model.ItemRecipe.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1747,6 +2620,7 @@ class App {
       }
 
       this.cache.ItemSet[item.name] = await this.model.ItemSet.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1771,6 +2645,7 @@ class App {
       }
 
       this.cache.ItemAttribute[item.name] = await this.model.ItemAttribute.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
         key: item.name,
@@ -1787,6 +2662,7 @@ class App {
   //
 
   //     await prisma.gameItemAttributeParam.create({
+  // applicationId: this.cache.Application.Arken.id,
   //       data: {
   //         name: item.name,
   //         description: '',
@@ -1810,12 +2686,12 @@ class App {
           "We would like our status, accomplishments and games documented on wikipedia. It should be done in a professional manner. In particular, we'd like our world first's documented, like being the first interoperable game model to utilize the same NFTs across games.",
       },
       {
-        name: 'List Second Wind on various game listing sites',
+        name: 'List Evolution Isles on various game listing sites',
         reward: '50 ZOD',
         status: 'Paused', // 'Paused. Wait for Evo 2 and free account system.',
         claimedBy: 'Nobody yet.',
         description:
-          'We would like Second Wind listed across as many gaming sites as possible. A minimum of 20 high-quality sites would be best.',
+          'We would like Evolution Isles listed across as many gaming sites as possible. A minimum of 20 high-quality sites would be best.',
       },
       {
         name: 'Categorize AI generated items into mythic/epic/rare/magical',
@@ -1837,6 +2713,7 @@ class App {
       }
 
       this.cache.Bounty[item.name] = await this.model.Bounty.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.name,
@@ -1859,6 +2736,7 @@ class App {
       }
 
       this.cache.Poll[item.name] = await this.model.Poll.create({
+        applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: item.description,
         key: item.name,
@@ -1886,7 +2764,7 @@ class App {
 
   async findProfileIdByUsername(username) {
     if (this.usernameToProfileId[username]) return this.usernameToProfileId[username]
-    this.usernameToProfileId[username] = (await this.model.Profile.find({ name: username })).id
+    this.usernameToProfileId[username] = (await this.model.Profile.findOne({ name: username })).id
     return this.usernameToProfileId[username]
   }
 
@@ -2280,15 +3158,7 @@ class App {
   filters: any = {}
 
   async createOmniverse() {
-    console.log('Creating omniverses')
-
-    this.cache.Omniverse.Arken = await this.model.Omniverse.findOne({ name: 'Arken' }).exec()
-
-    if (!this.cache.Omniverse.Arken)
-      this.cache.Omniverse.Arken = await this.model.Omniverse.create({
-        name: 'Arken',
-        key: 'arken',
-      })
+    console.log('Creating Reality')
 
     this.cache.Omniverse.Reality = await this.model.Omniverse.findOne({ name: 'Reality' }).exec()
 
@@ -2298,18 +3168,7 @@ class App {
         key: 'reality',
       })
 
-    console.log('Creating metaverses')
-
-    this.cache.Metaverse.Arken = await this.model.Metaverse.findOne({ name: 'Arken' }).exec()
-
-    if (!this.cache.Metaverse.Arken)
-      this.cache.Metaverse.Arken = await this.model.Metaverse.create({
-        omniverseId: this.cache.Omniverse.Arken.id,
-        name: 'Arken',
-        key: 'arken',
-      })
-
-    this.cache.Metaverse.Reality = await this.model.Metaverse.findOne({ name: 'Reality' }).exec()
+    this.cache.Metaverse.Reality = await this.model.Metaverse.findOne({ key: 'reality' }).exec()
 
     if (!this.cache.Metaverse.Reality)
       this.cache.Metaverse.Reality = await this.model.Metaverse.create({
@@ -2318,85 +3177,120 @@ class App {
         key: 'reality',
       })
 
-    console.log('Creating app: Arken')
+    this.cache.Application.Reality = await this.model.Application.findOne({
+      key: 'reality',
+    }).exec()
 
-    this.cache.Application.Arken = await this.model.Application.findOne({ name: 'Arken' }).exec()
+    if (!this.cache.Application.Reality)
+      this.cache.Application.Reality = await this.model.Application.create({
+        omniverseId: this.cache.Omniverse.Reality.id,
+        name: 'Reality',
+        key: 'reality',
+      })
+
+    console.log('Reality: Creating universes', this.cache.Application.Reality.id)
+
+    this.cache.Universe.Universe = await this.model.Universe.findOne({ key: 'universe' }).exec()
+
+    if (!this.cache.Universe.Universe)
+      this.cache.Universe.Universe = await this.model.Universe.create({
+        applicationId: this.cache.Application.Reality.id,
+        name: 'Universe',
+        key: 'universe',
+      })
+
+    console.log('Reality: Creating galaxies')
+
+    this.cache.Galaxy.MilkyWay = await this.model.Galaxy.findOne({ key: 'milky-way' }).exec()
+
+    if (!this.cache.Galaxy.MilkyWay)
+      this.cache.Galaxy.MilkyWay = await this.model.Galaxy.create({
+        applicationId: this.cache.Application.Reality.id,
+        universe: this.cache.Universe.Universe.id,
+        name: 'Milky Way',
+        key: 'milky-way',
+      })
+
+    console.log('Reality: Creating solar systems')
+
+    this.cache.SolarSystem.SolarSystem = await this.model.SolarSystem.findOne({
+      key: 'solar-system',
+    }).exec()
+
+    if (!this.cache.SolarSystem.SolarSystem)
+      this.cache.SolarSystem.SolarSystem = await this.model.SolarSystem.create({
+        applicationId: this.cache.Application.Reality.id,
+        galaxyId: this.cache.Galaxy.MilkyWay.id,
+        name: 'Solar System',
+        key: 'solar-system',
+      })
+
+    console.log('Reality: Creating planets')
+
+    this.cache.Planet.Earth = await this.model.Planet.findOne({ key: 'earth' }).exec()
+
+    if (!this.cache.Planet.Earth)
+      this.cache.Planet.Earth = await this.model.Planet.create({
+        applicationId: this.cache.Application.Reality.id,
+        solarSystemId: this.cache.SolarSystem.SolarSystem.id,
+        name: 'Earth',
+        key: 'earth',
+      })
+
+    this.cache.Planet.Mars = await this.model.Planet.findOne({ key: 'mars' }).exec()
+
+    if (!this.cache.Planet.Mars)
+      this.cache.Planet.Mars = await this.model.Planet.create({
+        applicationId: this.cache.Application.Reality.id,
+        solarSystemId: this.cache.SolarSystem.SolarSystem.id,
+        name: 'Mars',
+        key: 'mars',
+      })
+
+    console.log('Creating Arken Realms')
+
+    this.cache.Omniverse.Arken = await this.model.Omniverse.findOne({ name: 'Arken' }).exec()
+
+    if (!this.cache.Omniverse.Arken)
+      this.cache.Omniverse.Arken = await this.model.Omniverse.create({
+        name: 'Arken',
+        key: 'arken',
+      })
+
+    this.cache.Metaverse.Arken = await this.model.Metaverse.findOne({ key: 'arken' }).exec()
+
+    if (!this.cache.Metaverse.Arken)
+      this.cache.Metaverse.Arken = await this.model.Metaverse.create({
+        omniverseId: this.cache.Omniverse.Arken.id,
+        name: 'Arken Realms',
+        key: 'arken',
+      })
+
+    this.cache.Application.Arken = await this.model.Application.findOne({
+      key: 'arken',
+    }).exec()
 
     if (!this.cache.Application.Arken)
       this.cache.Application.Arken = await this.model.Application.create({
-        metaverseId: this.cache.Metaverse.Arken.id,
-        name: 'Arken',
+        omniverseId: this.cache.Omniverse.Arken.id,
+        name: 'Arken Realms',
         key: 'arken',
       })
 
     this.application = this.cache.Application.Arken
     this.filters.applicationId = this.application.id
 
-    console.log('Creating app: Cerebro')
+    console.log('Creating: Cerebro')
 
     this.cache.Application.Cerebro = await this.model.Application.findOne({
-      name: 'Cerebro',
+      key: 'cerebro',
     }).exec()
 
     if (!this.cache.Application.Cerebro)
       this.cache.Application.Cerebro = await this.model.Application.create({
-        metaverseId: this.cache.Metaverse.Arken.id,
+        omniverseId: this.cache.Omniverse.Arken.id,
         name: 'Cerebro',
         key: 'cerebro',
-      })
-
-    console.log('Creating universes')
-
-    this.cache.Universe.Universe = await this.model.Universe.findOne({ name: 'Universe' }).exec()
-
-    if (!this.cache.Universe.Universe)
-      this.cache.Universe.Universe = await this.model.Universe.create({
-        name: 'Universe',
-        key: 'universe',
-      })
-
-    console.log('Creating galaxies')
-
-    this.cache.Galaxy.MilkyWay = await this.model.Galaxy.findOne({ name: 'Milky Way' }).exec()
-
-    if (!this.cache.Galaxy.MilkyWay)
-      this.cache.Galaxy.MilkyWay = await this.model.Galaxy.create({
-        universe: this.cache.Universe.Universe.id,
-        name: 'Milky Way',
-        key: 'milky-way',
-      })
-
-    console.log('Creating solar systems')
-
-    this.cache.SolarSystem.SolarSystem = await this.model.SolarSystem.findOne({
-      name: 'Solar System',
-    }).exec()
-
-    if (!this.cache.SolarSystem.SolarSystem)
-      this.cache.SolarSystem.SolarSystem = await this.model.SolarSystem.create({
-        galaxyId: this.cache.Galaxy.MilkyWay.id,
-        name: 'Solar System',
-        key: 'solar-system',
-      })
-
-    console.log('Creating planets')
-
-    this.cache.Planet.Earth = await this.model.Planet.findOne({ name: 'Earth' }).exec()
-
-    if (!this.cache.Planet.Earth)
-      this.cache.Planet.Earth = await this.model.Planet.create({
-        solarSystemId: this.cache.SolarSystem.SolarSystem.id,
-        name: 'Earth',
-        key: 'earth',
-      })
-
-    this.cache.Planet.Mars = await this.model.Planet.findOne({ name: 'Mars' }).exec()
-
-    if (!this.cache.Planet.Mars)
-      this.cache.Planet.Mars = await this.model.Planet.create({
-        solarSystemId: this.cache.SolarSystem.SolarSystem.id,
-        name: 'Mars',
-        key: 'mars',
       })
 
     // console.log('Creating organizations')
@@ -2434,6 +3328,7 @@ class App {
 
     if (!this.cache.Role.User)
       this.cache.Role.User = await this.model.Role.create({
+        applicationId: this.cache.Application.Arken.id,
         name: 'User',
       })
 
@@ -2441,21 +3336,26 @@ class App {
 
     // mongo.Account.dropIndex('applicationId_1_organizationId_1_username_1')
 
-    this.cache.Account.zen0 = await this.model.Account.findOne({ username: 'zen0' }).exec()
+    this.cache.Account.Memefella = await this.model.Account.findOne({
+      applicationId: this.cache.Application.Arken.id,
+      username: 'Memefella',
+    }).exec()
 
-    if (!this.cache.Account.zen0)
-      this.cache.Account.zen0 = await this.model.Account.create({
-        username: 'zen0',
+    if (!this.cache.Account.Memefella)
+      this.cache.Account.Memefella = await this.model.Account.create({
+        applicationId: this.cache.Application.Arken.id,
+        username: 'Memefella',
       })
 
     console.log('Creating profiles')
 
-    this.cache.Profile.zen0 = await this.model.Profile.findOne({ name: 'zen0' }).exec()
+    this.cache.Profile.Memefella = await this.model.Profile.findOne({ name: 'Memefella' }).exec()
 
-    if (!this.cache.Profile.zen0)
-      this.cache.Profile.zen0 = await this.model.Profile.create({
-        accountId: this.cache.Account.zen0.id,
-        name: 'zen0',
+    if (!this.cache.Profile.Memefella)
+      this.cache.Profile.Memefella = await this.model.Profile.create({
+        applicationId: this.cache.Application.Arken.id,
+        accountId: this.cache.Account.Memefella.id,
+        name: 'Memefella',
       })
 
     console.log('Creating chains')
@@ -2464,6 +3364,7 @@ class App {
 
     if (!this.cache.Chain.ETH)
       this.cache.Chain.ETH = await this.model.Chain.create({
+        applicationId: this.cache.Application.Arken.id,
         name: 'Ethereum',
         key: 'ethereum',
       })
@@ -2472,6 +3373,7 @@ class App {
 
     if (!this.cache.Chain.TON)
       this.cache.Chain.TON = await this.model.Chain.create({
+        applicationId: this.cache.Application.Arken.id,
         name: 'TON',
         key: 'ton',
       })
@@ -2480,6 +3382,7 @@ class App {
 
     if (!this.cache.Chain.MATIC)
       this.cache.Chain.MATIC = await this.model.Chain.create({
+        applicationId: this.cache.Application.Arken.id,
         name: 'Polygon',
         key: 'polygon',
       })
@@ -2488,6 +3391,7 @@ class App {
 
     if (!this.cache.Chain.BSC)
       this.cache.Chain.BSC = await this.model.Chain.create({
+        applicationId: this.cache.Application.Arken.id,
         name: 'BSC',
         key: 'bsc',
       })
@@ -2496,217 +3400,297 @@ class App {
 
     if (!this.cache.Chain.IMX)
       this.cache.Chain.IMX = await this.model.Chain.create({
+        applicationId: this.cache.Application.Arken.id,
         name: 'Immutable X',
         key: 'immutablex',
       })
 
-    console.log('Creating app: Infinite')
+    console.log('Creating: Infinite Arena')
 
-    this.cache.Application['Arken: Infinite Arena'] = await this.model.Application.findOne({
-      name: 'Arken: Infinite Arena',
+    // this.cache.Application['Infinite Arena'] = await this.model.Application.findOne({
+    //   name: 'Infinite Arena',
+    // }).exec()
+
+    // if (!this.cache.Application['Infinite Arena'])
+    //   this.cache.Application['Infinite Arena'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Infinite Arena',
+    //     key: 'infinite-arena',
+    //   })
+
+    this.cache.Product['Infinite Arena'] = await this.model.Product.findOne({
+      name: 'Infinite Arena',
     }).exec()
 
-    if (!this.cache.Application['Arken: Infinite Arena'])
-      this.cache.Application['Arken: Infinite Arena'] = await this.model.Application.create({
-        name: 'Arken: Infinite Arena',
-        key: 'arken-arena',
+    if (!this.cache.Product['Infinite Arena'])
+      this.cache.Product['Infinite Arena'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Infinite Arena',
+        key: 'infinite-arena',
       })
 
-    this.cache.Product['Arken: Infinite Arena'] = await this.model.Product.findOne({
-      name: 'Arken: Infinite Arena',
+    this.cache.Game['Infinite Arena'] = await this.model.Game.findOne({
+      name: 'Infinite Arena',
     }).exec()
 
-    if (!this.cache.Product['Arken: Infinite Arena'])
-      this.cache.Product['Arken: Infinite Arena'] = await this.model.Product.create({
-        applicationId: this.cache.Application['Arken: Infinite Arena'].id,
-        name: 'Arken: Infinite Arena',
-        key: 'arken-arena',
+    if (!this.cache.Game['Infinite Arena'])
+      this.cache.Game['Infinite Arena'] = await this.model.Game.create({
+        applicationId: this.cache.Application.Arken.id,
+        productId: this.cache.Product['Infinite Arena'].id,
+        name: 'Infinite Arena',
+        key: 'infinite-arena',
       })
 
-    this.cache.Game['Arken: Infinite Arena'] = await this.model.Game.findOne({
-      name: 'Arken: Infinite Arena',
+    console.log('Creating: Evolution Isles')
+
+    // this.cache.Application['Evolution Isles'] = await this.model.Application.findOne({
+    //   name: 'Evolution Isles',
+    // }).exec()
+
+    // if (!this.cache.Application['Evolution Isles'])
+    //   this.cache.Application['Evolution Isles'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Evolution Isles',
+    //     key: 'evolution-isles',
+    //   })
+
+    this.cache.Product['Evolution Isles'] = await this.model.Product.findOne({
+      name: 'Evolution Isles',
     }).exec()
 
-    if (!this.cache.Game['Arken: Infinite Arena'])
-      this.cache.Game['Arken: Infinite Arena'] = await this.model.Game.create({
-        productId: this.cache.Product['Arken: Infinite Arena'].id,
-        name: 'Arken: Infinite Arena',
-        key: 'arken-arena',
+    if (!this.cache.Product['Evolution Isles'])
+      this.cache.Product['Evolution Isles'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Evolution Isles',
+        key: 'evolution-isles',
       })
 
-    console.log('Creating app: Evolution')
-
-    this.cache.Application['Arken: Evolution Isles'] = await this.model.Application.findOne({
-      name: 'Arken: Evolution Isles',
+    this.cache.Game['Evolution Isles'] = await this.model.Game.findOne({
+      name: 'Evolution Isles',
     }).exec()
 
-    if (!this.cache.Application['Arken: Evolution Isles'])
-      this.cache.Application['Arken: Evolution Isles'] = await this.model.Application.create({
-        metaverseId: this.cache.Metaverse.Arken.id,
-        name: 'Arken: Evolution Isles',
-        key: 'arken-isles',
+    if (!this.cache.Game['Evolution Isles'])
+      this.cache.Game['Evolution Isles'] = await this.model.Game.create({
+        applicationId: this.cache.Application.Arken.id,
+        productId: this.cache.Product['Evolution Isles'].id,
+        name: 'Evolution Isles',
+        key: 'evolution-isles',
       })
 
-    this.cache.Product['Arken: Evolution Isles'] = await this.model.Product.findOne({
-      name: 'Arken: Evolution Isles',
+    console.log('Creating: Heart of the Oasis')
+
+    // this.cache.Application['Heart of the Oasis'] = await this.model.Application.findOne({
+    //   name: 'Heart of the Oasis',
+    // }).exec()
+
+    // if (!this.cache.Application['Heart of the Oasis'])
+    //   this.cache.Application['Heart of the Oasis'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Heart of the Oasis',
+    //     key: 'heart-of-the-oasis',
+    //   })
+
+    this.cache.Product['Heart of the Oasis'] = await this.model.Product.findOne({
+      name: 'Heart of the Oasis',
     }).exec()
 
-    if (!this.cache.Product['Arken: Evolution Isles'])
-      this.cache.Product['Arken: Evolution Isles'] = await this.model.Product.create({
-        applicationId: this.cache.Application['Arken: Evolution Isles'].id,
-        name: 'Arken: Evolution Isles',
-        key: 'arken-isles',
+    if (!this.cache.Product['Heart of the Oasis'])
+      this.cache.Product['Heart of the Oasis'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Heart of the Oasis',
+        key: 'heart-of-the-oasis',
       })
 
-    this.cache.Game['Arken: Evolution Isles'] = await this.model.Game.findOne({
-      name: 'Arken: Evolution Isles',
-    }).exec()
-
-    if (!this.cache.Game['Arken: Evolution Isles'])
-      this.cache.Game['Arken: Evolution Isles'] = await this.model.Game.create({
-        productId: this.cache.Product['Arken: Evolution Isles'].id,
-        name: 'Arken: Evolution Isles',
-        key: 'arken-isles',
-      })
-
-    console.log('Creating app: Oasis')
-
-    this.cache.Application['Arken: Heart of the Oasis'] = await this.model.Application.findOne({
-      name: 'Arken: Heart of the Oasis',
-    }).exec()
-
-    if (!this.cache.Application['Arken: Heart of the Oasis'])
-      this.cache.Application['Arken: Heart of the Oasis'] = await this.model.Application.create({
-        metaverseId: this.cache.Metaverse.Arken.id,
-        name: 'Arken: Heart of the Oasis',
-        key: 'arken-oasis',
-      })
-
-    this.cache.Product['Arken: Heart of the Oasis'] = await this.model.Product.findOne({
-      name: 'Arken: Heart of the Oasis',
-    }).exec()
-
-    if (!this.cache.Product['Arken: Heart of the Oasis'])
-      this.cache.Product['Arken: Heart of the Oasis'] = await this.model.Product.create({
-        applicationId: this.cache.Application['Arken: Heart of the Oasis'].id,
-        name: 'Arken: Heart of the Oasis',
-        key: 'arken-oasis',
-      })
-
-    this.cache.Game['Arken: Heart of the Oasis'] = await this.model.Game.findOne({
-      name: 'Arken: Heart of the Oasis',
+    this.cache.Game['Heart of the Oasis'] = await this.model.Game.findOne({
+      name: 'Heart of the Oasis',
     })
 
-    if (!this.cache.Game['Arken: Heart of the Oasis'])
-      this.cache.Game['Arken: Heart of the Oasis'] = await this.model.Game.create({
-        productId: this.cache.Product['Arken: Heart of the Oasis'].id,
-        name: 'Arken: Heart of the Oasis',
-        key: 'arken-oasis',
+    if (!this.cache.Game['Heart of the Oasis'])
+      this.cache.Game['Heart of the Oasis'] = await this.model.Game.create({
+        applicationId: this.cache.Application.Arken.id,
+        productId: this.cache.Product['Heart of the Oasis'].id,
+        name: 'Heart of the Oasis',
+        key: 'heart-of-the-oasis',
       })
 
-    console.log('Creating app: Raids')
+    console.log('Creating: Runic Raids')
 
-    this.cache.Application['Arken: Runic Raids'] = await this.model.Application.findOne({
-      name: 'Arken: Runic Raids',
+    // this.cache.Application['Runic Raids'] = await this.model.Application.findOne({
+    //   name: 'Runic Raids',
+    // }).exec()
+
+    // if (!this.cache.Application['Runic Raids'])
+    //   this.cache.Application['Runic Raids'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Runic Raids',
+    //     key: 'runic-raids',
+    //   })
+
+    this.cache.Product['Runic Raids'] = await this.model.Product.findOne({
+      name: 'Runic Raids',
     }).exec()
 
-    if (!this.cache.Application['Arken: Runic Raids'])
-      this.cache.Application['Arken: Runic Raids'] = await this.model.Application.create({
-        metaverseId: this.cache.Metaverse.Arken.id,
-        name: 'Arken: Runic Raids',
-        key: 'arken-raids',
+    if (!this.cache.Product['Runic Raids'])
+      this.cache.Product['Runic Raids'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Runic Raids',
+        key: 'runic-raids',
       })
 
-    this.cache.Product['Arken: Runic Raids'] = await this.model.Product.findOne({
-      name: 'Arken: Runic Raids',
+    this.cache.Game['Runic Raids'] = await this.model.Game.findOne({
+      name: 'Runic Raids',
     }).exec()
 
-    if (!this.cache.Product['Arken: Runic Raids'])
-      this.cache.Product['Arken: Runic Raids'] = await this.model.Product.create({
-        applicationId: this.cache.Application['Arken: Runic Raids'].id,
-        name: 'Arken: Runic Raids',
-        key: 'arken-raids',
+    if (!this.cache.Game['Runic Raids'])
+      this.cache.Game['Runic Raids'] = await this.model.Game.create({
+        applicationId: this.cache.Application.Arken.id,
+        productId: this.cache.Product['Runic Raids'].id,
+        name: 'Runic Raids',
+        key: 'runic-raids',
       })
 
-    this.cache.Game['Arken: Runic Raids'] = await this.model.Game.findOne({
-      name: 'Arken: Runic Raids',
+    console.log('Creating: Strike Legends')
+
+    // this.cache.Application['Strike Legends'] = await this.model.Application.findOne({
+    //   name: 'Strike Legends',
+    // }).exec()
+
+    // if (!this.cache.Application['Strike Legends'])
+    //   this.cache.Application['Strike Legends'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Strike Legends',
+    //     key: 'strike-legends',
+    //   })
+
+    this.cache.Product['Strike Legends'] = await this.model.Product.findOne({
+      name: 'Strike Legends',
     }).exec()
 
-    if (!this.cache.Game['Arken: Runic Raids'])
-      this.cache.Game['Arken: Runic Raids'] = await this.model.Game.create({
-        productId: this.cache.Product['Arken: Runic Raids'].id,
-        name: 'Arken: Runic Raids',
-        key: 'arken-raids',
+    if (!this.cache.Product['Strike Legends'])
+      this.cache.Product['Strike Legends'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Strike Legends',
+        key: 'strike-legends',
       })
 
-    console.log('Creating app: Legends')
-
-    this.cache.Application['Arken: Strike Legends'] = await this.model.Application.findOne({
-      name: 'Arken: Strike Legends',
+    this.cache.Game['Strike Legends'] = await this.model.Game.findOne({
+      name: 'Strike Legends',
     }).exec()
 
-    if (!this.cache.Application['Arken: Strike Legends'])
-      this.cache.Application['Arken: Strike Legends'] = await this.model.Application.create({
-        metaverseId: this.cache.Metaverse.Arken.id,
-        name: 'Arken: Strike Legends',
-        key: 'arken-legends',
+    if (!this.cache.Game['Strike Legends'])
+      this.cache.Game['Strike Legends'] = await this.model.Game.create({
+        productId: this.cache.Product['Strike Legends'].id,
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Strike Legends',
+        key: 'strike-legends',
       })
 
-    this.cache.Product['Arken: Strike Legends'] = await this.model.Product.findOne({
-      name: 'Arken: Strike Legends',
+    console.log('Creating: Guardians Unleashed')
+
+    // this.cache.Application['Guardians Unleashed'] = await this.model.Application.findOne({
+    //   name: 'Guardians Unleashed',
+    // }).exec()
+
+    // if (!this.cache.Application['Guardians Unleashed'])
+    //   this.cache.Application['Guardians Unleashed'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Guardians Unleashed',
+    //     key: 'guardians-unleashed',
+    //   })
+
+    this.cache.Product['Guardians Unleashed'] = await this.model.Product.findOne({
+      name: 'Guardians Unleashed',
     }).exec()
 
-    if (!this.cache.Product['Arken: Strike Legends'])
-      this.cache.Product['Arken: Strike Legends'] = await this.model.Product.create({
-        applicationId: this.cache.Application['Arken: Strike Legends'].id,
-        name: 'Arken: Strike Legends',
-        key: 'arken-legends',
+    if (!this.cache.Product['Guardians Unleashed'])
+      this.cache.Product['Guardians Unleashed'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Guardians Unleashed',
+        key: 'guardians-unleashed',
       })
 
-    this.cache.Game['Arken: Strike Legends'] = await this.model.Game.findOne({
-      name: 'Arken: Strike Legends',
+    this.cache.Game['Guardians Unleashed'] = await this.model.Game.findOne({
+      name: 'Guardians Unleashed',
     }).exec()
 
-    if (!this.cache.Game['Arken: Strike Legends'])
-      this.cache.Game['Arken: Strike Legends'] = await this.model.Game.create({
-        productId: this.cache.Product['Arken: Strike Legends'].id,
-        name: 'Arken: Strike Legends',
-        key: 'arken-legends',
+    if (!this.cache.Game['Guardians Unleashed'])
+      this.cache.Game['Guardians Unleashed'] = await this.model.Game.create({
+        applicationId: this.cache.Application.Arken.id,
+        productId: this.cache.Product['Guardians Unleashed'].id,
+        name: 'Guardians Unleashed',
+        key: 'guardians-unleashed',
       })
 
-    console.log('Creating app: Guardians')
+    console.log('Creating: Meme Isles')
 
-    this.cache.Application['Arken: Guardians Unleashed'] = await this.model.Application.findOne({
-      name: 'Arken: Guardians Unleashed',
+    // this.cache.Application['Meme Isles'] = await this.model.Application.findOne({
+    //   name: 'Meme Isles',
+    // }).exec()
+
+    // if (!this.cache.Application['Meme Isles'])
+    //   this.cache.Application['Meme Isles'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Meme Isles',
+    //     key: 'meme-isles',
+    //   })
+
+    this.cache.Product['Meme Isles'] = await this.model.Product.findOne({
+      name: 'Meme Isles',
     }).exec()
 
-    if (!this.cache.Application['Arken: Guardians Unleashed'])
-      this.cache.Application['Arken: Guardians Unleashed'] = await this.model.Application.create({
-        metaverseId: this.cache.Metaverse.Arken.id,
-        name: 'Arken: Guardians Unleashed',
-        key: 'arken-guardians',
+    if (!this.cache.Product['Meme Isles'])
+      this.cache.Product['Meme Isles'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Meme Isles',
+        key: 'meme-isles',
       })
 
-    this.cache.Product['Arken: Guardians Unleashed'] = await this.model.Product.findOne({
-      name: 'Arken: Guardians Unleashed',
+    this.cache.Game['Meme Isles'] = await this.model.Game.findOne({
+      name: 'Meme Isles',
     }).exec()
 
-    if (!this.cache.Product['Arken: Guardians Unleashed'])
-      this.cache.Product['Arken: Guardians Unleashed'] = await this.model.Product.create({
-        applicationId: this.cache.Application['Arken: Guardians Unleashed'].id,
-        name: 'Arken: Guardians Unleashed',
-        key: 'arken-guardians',
+    if (!this.cache.Game['Meme Isles'])
+      this.cache.Game['Meme Isles'] = await this.model.Game.create({
+        applicationId: this.cache.Application.Arken.id,
+        productId: this.cache.Product['Meme Isles'].id,
+        name: 'Meme Isles',
+        key: 'meme-isles',
       })
 
-    this.cache.Game['Arken: Guardians Unleashed'] = await this.model.Game.findOne({
-      name: 'Arken: Guardians Unleashed',
+    console.log('Creating: Return to the Oasis')
+
+    // this.cache.Application['Return to the Oasis'] = await this.model.Application.findOne({
+    //   name: 'Return to the Oasis',
+    // }).exec()
+
+    // if (!this.cache.Application['Return to the Oasis'])
+    //   this.cache.Application['Return to the Oasis'] = await this.model.Application.create({
+    //     omniverseId: this.cache.Omniverse.Arken.id,
+    //     name: 'Return to the Oasis',
+    //     key: 'return-to-the-oasis',
+    //   })
+
+    this.cache.Product['Return to the Oasis'] = await this.model.Product.findOne({
+      name: 'Return to the Oasis',
     }).exec()
 
-    if (!this.cache.Game['Arken: Guardians Unleashed'])
-      this.cache.Game['Arken: Guardians Unleashed'] = await this.model.Game.create({
-        productId: this.cache.Product['Arken: Guardians Unleashed'].id,
-        name: 'Arken: Guardians Unleashed',
-        key: 'arken-guardians',
+    if (!this.cache.Product['Return to the Oasis'])
+      this.cache.Product['Return to the Oasis'] = await this.model.Product.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Return to the Oasis',
+        key: 'return-to-the-oasis',
+      })
+
+    this.cache.Game['Return to the Oasis'] = await this.model.Game.findOne({
+      name: 'Return to the Oasis',
+    }).exec()
+
+    if (!this.cache.Game['Return to the Oasis'])
+      this.cache.Game['Return to the Oasis'] = await this.model.Game.create({
+        applicationId: this.cache.Application.Arken.id,
+        productId: this.cache.Product['Return to the Oasis'].id,
+        name: 'Return to the Oasis',
+        key: 'return-to-the-oasis',
       })
   }
 
@@ -2733,37 +3717,58 @@ class App {
 
     console.log('Creating models...')
 
-    const models = Object.keys(schemas).filter((key) => key !== 'NodeRelation')
-
     this.model = {}
     this.cache = {}
     this.oldCache = {}
 
-    for (const model of models) {
-      this.model[model] = this.db.model(model, schemas[model])
-      this.cache[model] = {}
-      this.oldCache[model] = {}
+    for (const service of [
+      Area,
+      Asset,
+      Chain,
+      Character,
+      Chat,
+      Collection,
+      Core,
+      Game,
+      Interface,
+      Item,
+      Job,
+      Market,
+      Product,
+      Profile,
+      Raffle,
+      Skill,
+      Video,
+    ]) {
+      for (const modelName of Object.keys(service.Models)) {
+        const model = service.Models[modelName]
+
+        this.cache[model.collection.name] = {}
+        this.model[model.collection.name] = model
+        this.oldCache[model.collection.name] = {}
+      }
     }
 
     await this.createOmniverse() //
     await this.migrateEras()
-    // await this.migrateCharacterAttributes() //
-    // await this.migrateGuides() //
+    await this.migrateCharacterAttributes() //
+    await this.migrateGuides() //
 
-    // await this.migrateAssets() //
-    // await this.migrateItemAttributes() //
-    // await this.migrateItemRecipes() //
-    // await this.migrateItemMaterials() //
-    // // await this.migrateItemAttributeParams() // forget about this?
-    // // await this.migrateItemParams() // forget about this?
-    // await this.migrateItemSpecificTypes() //
-    // await this.migrateItemSubTypes() //
-    // await this.migrateItemTypes() //
-    // // await this.migrateItemAffixes()
-    // await this.migrateItemSlots() //
-    // await this.migrateItemRarities() //
-    // await this.migrateItemSets() //
-    // // await this.migrateItemTransmuteRules() // fill this in and do later
+    await this.migrateAssetStandards() //
+    await this.migrateAssets() //
+    await this.migrateItemAttributes() //
+    await this.migrateItemRecipes() //
+    await this.migrateItemMaterials() //
+    // await this.migrateItemAttributeParams() // forget about this?
+    // await this.migrateItemParams() // forget about this?
+    await this.migrateItemSpecificTypes() //
+    await this.migrateItemSubTypes() //
+    await this.migrateItemTypes() //
+    // await this.migrateItemAffixes()
+    await this.migrateItemSlots() //
+    await this.migrateItemRarities() //
+    await this.migrateItemSets() //
+    // await this.migrateItemTransmuteRules() // fill this in and do later
     // await this.migrateSkills() //
     // await this.migrateSkillMods() //
     // await this.migrateSkillClassifications() //
@@ -2797,17 +3802,18 @@ class App {
     // await this.migrateActs()
     // await this.migrateEras()
     // // await this.migrateAreaLandmark()
-    // await this.migrateAchievements()
+    await this.migrateAchievements()
     // await this.migrateBiomeFeatures()
     // await this.migrateBiomes() // needs to be rerun
     // await this.migrateSolarSystems()
     // await this.migratePlanets()
 
     // await this.migrateTeams()
-    // await this.migrateAccounts()
+    await this.migrateAccounts()
     // await this.migrateClaims()
     // // await this.migrateGameItems()
-    // await this.migrateTrades()
+    await this.migrateOldTrades()
+    await this.migrateTrades()
     // await this.migrateReferrals()
     // await this.migrateBounties()
     // await this.migrateRaffles()
@@ -2822,10 +3828,12 @@ class App {
   }
 }
 
-const app = new App()
+export default function init() {
+  const app = new App()
 
-app.init().catch(async (e) => {
-  console.error(e)
-  await prisma.$disconnect()
-  process.exit(1)
-})
+  app.init().catch(async (e) => {
+    console.error(e)
+    await prisma.$disconnect()
+    process.exit(1)
+  })
+}
