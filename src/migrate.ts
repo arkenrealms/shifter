@@ -4,7 +4,7 @@ import jetpack from 'fs-jetpack'
 import path from 'path'
 import { log, isDebug } from '@arken/node/util'
 import { toTitleCase } from '@arken/node/util/string'
-import itemData from '@arken/node/data/generated/items.json'
+import itemData1 from '@arken/node/data/generated/items.json'
 import { decodeItem, getTokenIdFromItem, convertRuneSymbol } from '@arken/node/util/decoder'
 // import { transformRequest, transformResponse } from '@w4verse/lite-ui/utils/db'
 import { PrismaClient } from './generated'
@@ -56,6 +56,7 @@ import planets from '@arken/node/data/generated/planets.json'
 import solarSystems from '@arken/node/data/generated/solarSystems.json'
 import games from '@arken/node/data/generated/games.json'
 import achievements from '../../data/achievements.json'
+import itemData2 from '../../data/items.json'
 import * as Arken from '@arken/node/types'
 import * as database from '@arken/node/db'
 import {
@@ -77,7 +78,10 @@ import {
   Skill,
   Video,
 } from '@arken/node'
+import _ from 'lodash'
 import { getAsset } from 'node:sea'
+
+const itemData: typeof itemData1 = Object.values(_.merge({}, itemData1, itemData2))
 
 const oldPrisma = new OldPrismaClient({
   datasources: {
@@ -283,9 +287,7 @@ class App {
       process.stdout.cursorTo(0)
       process.stdout.write(`Progress: ${(parseInt(index) / oldProfiles.length) * 100}%`)
 
-      let newProfile: Arken.Profile.Types.Profile = await this.model.Profile.findOne({
-        name: oldProfile.name,
-      }).exec()
+      let newProfile: Arken.Profile.Types.Profile = await this.getProfileByName(oldProfile.name)
 
       if (!newProfile && oldProfile?.name) {
         console.log(oldProfile)
@@ -387,7 +389,7 @@ class App {
         'json'
       )
 
-      console.log(111, newProfile.meta, achievements, characters)
+      // console.log(111, newProfile.meta, achievements, characters)
 
       // newProfile.meta = {
       //   ...(newProfile.meta || {}),
@@ -406,7 +408,7 @@ class App {
       if (market) newProfile.meta.market = market
       if (overview) newProfile.meta.overview = overview
 
-      console.log(222, newProfile.meta)
+      // console.log(222, newProfile.meta)
 
       // Migrate rewards
       // rewards: {
@@ -427,9 +429,33 @@ class App {
       //     shael: 0.22
       //   }
       // },
-      const character = this.cache.Character[newProfile.characters?.[0]?.characterId]
+
+      const token = newProfile.characters?.[0]?.meta.tokenId
+
+      if (!this.cache.Character[token])
+        this.cache.Character[token] = await this.model.Character.findOne({
+          token: token,
+        })
+
+      const character = this.cache.Character[token]
+
+      // console.log('Setting up character xxx', newProfile.characters)
 
       if (character) {
+        console.log('Setting up character ', character.id)
+
+        if (!character.equipment[character.equipmentIndex]) {
+          character.equipment[character.equipmentIndex] = {
+            items: [],
+          }
+        }
+
+        if (!character.inventory[character.inventoryIndex]) {
+          character.inventory[character.inventoryIndex] = {
+            items: [],
+          }
+        }
+
         let rewardBag = character.inventory[character.inventoryIndex].items.find(
           (item: any) => item.name === 'Runic Reward Bag'
         )
@@ -439,12 +465,13 @@ class App {
 
           const tokenId = getTokenIdFromItem(itemDef)
 
+          // const // console.log(itemDef, tokenId)
           rewardBag = await this.model.Item.create({
             token: tokenId, // TODO: is there a tokenId for every rune yet? if not, reserve it and insert as an Asset. dont need token if we use asset.
-            assetId: this.cache.Asset[itemDef.id].id,
+            assetId: this.cache.Asset[itemDef.name].id,
             chainId: this.cache.Chain.BSC.id,
             applicationId: this.cache.Application.Arken.id,
-            key: tokenId,
+            // key: tokenId,
             meta: itemDef,
             name: itemDef.name,
             status: 'Active',
@@ -455,16 +482,16 @@ class App {
             subTypeId: this.cache.ItemSubType[itemDef.subType]?.id,
             specificTypeId: this.cache.ItemSpecificType[itemDef.specificType]?.id,
             // rarityId: this.cache.ItemRarity[itemDef.rarity]?.id,
-            slotId: this.cache.ItemSlot[itemDef.slots?.[0]]?.id,
+            slotIds: itemDef.slots
+              ? itemDef.slots.map((slot: any) => this.oldCache.ItemSlot[slot || 0]?.id)
+              : [],
             // setId: this.cache.ItemSet[itemDef.set]?.id,
             attributes: [],
-            quantity: 1,
-            slotX: undefined,
-            slotY: undefined,
             // properties: z.record(z.any()).optional(),
             // type: z.string().default('bag'), // stash, bag, equipment, etc.
             // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
             items: [],
+            quantity: 1,
             capacity: undefined,
             points: 0,
           })
@@ -473,7 +500,7 @@ class App {
         const rewards = []
 
         // TODO: create the Item for these using Asset, or find the Item in their inventory and increase the quantity
-        if (typeof newProfile.meta.rewards.runes === 'object') {
+        if (typeof newProfile.meta?.rewards?.runes === 'object') {
           for (const rune of Object.keys(newProfile.meta.rewards.runes)) {
             // Look for an existing Runic Reward Bag, if doesnt exist create it
             // Add the runes to that
@@ -484,35 +511,42 @@ class App {
             )
             const tokenId = getTokenIdFromItem(itemDef)
 
-            const reward = this.model.Item.create({
-              assetId: this.cache.Asset[convertRuneSymbol(rune)].id,
-              chainId: this.cache.Chain.BSC.id,
-              token: tokenId, // TODO: is there a tokenId for every rune yet? if not, reserve it and insert as an Asset. dont need token if we use asset.
-              applicationId: this.cache.Application.Arken.id,
-              key: tokenId,
-              meta: itemDef,
-              name: itemDef.name,
-              status: 'Active',
-              materialId: this.cache.ItemMaterial[itemDef.materials?.[0]]?.id,
-              // skinId: this.cache.ItemSkin[itemDef.skin]?.id, // TODO: convert the skin mapper stuff to items, and get the skin item from there
-              // recipeId: this.cache.ItemRecipe[itemDef.recipe]?.id,
-              typeId: this.cache.ItemType[itemDef.type]?.id,
-              subTypeId: this.cache.ItemSubType[itemDef.subType]?.id,
-              specificTypeId: this.cache.ItemSpecificType[itemDef.specificType]?.id,
-              // rarityId: this.cache.ItemRarity[itemDef.rarity]?.id,
-              slotId: this.cache.ItemSlot[itemDef.slots?.[0]]?.id,
-              // setId: this.cache.ItemSet[itemDef.set]?.id,
-              attributes: [],
-              quantity,
-              slotX: undefined,
-              slotY: undefined,
-              // properties: z.record(z.any()).optional(),
-              // type: z.string().default('bag'), // stash, bag, equipment, etc.
-              // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
-              items: [],
-              capacity: undefined,
-              points: 0,
+            let reward = await this.model.Item.findOne({
+              characterId: character.id,
+              token: tokenId,
             })
+
+            if (!reward)
+              reward = await this.model.Item.create({
+                assetId: this.cache.Asset[`${toTitleCase(convertRuneSymbol(rune))} Rune`].id,
+                chainId: this.cache.Chain.BSC.id,
+                characterId: character.id,
+                token: tokenId, // TODO: is there a tokenId for every rune yet? if not, reserve it and insert as an Asset. dont need token if we use asset.
+                applicationId: this.cache.Application.Arken.id,
+                // key: tokenId,
+                meta: itemDef,
+                name: itemDef.name,
+                status: 'Active',
+                materialId: this.cache.ItemMaterial[itemDef.materials?.[0]]?.id,
+                // skinId: this.cache.ItemSkin[itemDef.skin]?.id, // TODO: convert the skin mapper stuff to items, and get the skin item from there
+                // recipeId: this.cache.ItemRecipe[itemDef.recipe]?.id,
+                typeId: this.cache.ItemType[itemDef.type]?.id,
+                subTypeId: this.cache.ItemSubType[itemDef.subType]?.id,
+                specificTypeId: this.cache.ItemSpecificType[itemDef.specificType]?.id,
+                // rarityId: this.cache.ItemRarity[itemDef.rarity]?.id,
+                slotId: this.cache.ItemSlot[itemDef.slots?.[0]]?.id,
+                // setId: this.cache.ItemSet[itemDef.set]?.id,
+                attributes: [],
+                quantity,
+                x: undefined,
+                y: undefined,
+                // properties: z.record(z.any()).optional(),
+                // type: z.string().default('bag'), // stash, bag, equipment, etc.
+                // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
+                items: [],
+                capacity: undefined,
+                points: 0,
+              })
 
             rewards.push(reward.id)
           }
@@ -522,7 +556,9 @@ class App {
 
         await rewardBag.save()
 
-        character.inventory.items = [rewardBag.id]
+        character.inventory[character.inventoryIndex].items = [{ itemId: rewardBag.id, x: 1, y: 1 }]
+
+        await character.save()
       }
 
       // Migrate characters
@@ -562,7 +598,7 @@ class App {
       newProfile.stats.marketTradeListedCount = newProfile.meta.marketTradeListedCount
       newProfile.stats.evolution = newProfile.meta.evolution
 
-      newProfile.teamId = this.cache.Team[newProfile.meta.overview.guildId].id
+      newProfile.teamId = this.cache.Team[newProfile.meta.overview?.guildId]?.id
 
       // Migrate overview
 
@@ -585,16 +621,30 @@ class App {
     }
   }
 
+  async getProfileByAddress(address: string) {
+    return (
+      this.cache.Profile[address] ||
+      (await this.model.Profile.findOne({
+        address: address,
+      }).populate('characters.character'))
+    )
+  }
+
+  async getProfileByName(name: string) {
+    return (
+      this.cache.Profile[name] ||
+      (await this.model.Profile.findOne({
+        name: name,
+      }).populate('characters.character'))
+    )
+  }
+
   async migrateClaims() {
     // @ts-ignore
     for (const claimRequest of claimRequests) {
       if (!claimRequest) continue
 
-      const profile =
-        this.cache.Profile[claimRequest.address] ||
-        (await this.model.Profile.findOne({
-          address: claimRequest.address,
-        }))
+      const profile = await this.getProfileByAddress(claimRequest.address)
 
       if (!profile) {
         console.log('Profile not found', claimRequest.username, claimRequest.address)
@@ -675,10 +725,8 @@ class App {
   async migrateAssets() {
     console.log('Migrating assets')
 
-    const items = jetpack.read(path.resolve(`../data/items.json`), 'json')
-
     // @ts-ignore
-    for (const item of items) {
+    for (const item of itemData) {
       if (!item.id) continue
 
       this.oldCache.Asset[item.id] = item
@@ -694,7 +742,7 @@ class App {
         key: item.id + '',
       }).exec()
 
-      if (!this.cache.Asset[item.name])
+      if (!this.cache.Asset[item.name]) {
         this.cache.Asset[item.name] = await this.model.Asset.create({
           applicationId: this.cache.Application.Arken.id,
           chainId: this.cache.Chain.BSC.id,
@@ -707,6 +755,7 @@ class App {
           type: 'ERC-721',
           standard: 'ARX-1',
         })
+      }
 
       // console.log(asset.id)
     }
@@ -1099,7 +1148,7 @@ class App {
   }
 
   async migrateAssetStandards() {
-    const standards = ['ARX-1', 'ERC-721', 'ERC-1155']
+    const standards = ['ERC-721', 'ERC-1155', 'ARX-1']
 
     for (const name of standards) {
       this.cache.AssetStandard[name] = await this.model.AssetStandard.findOne({
@@ -1112,7 +1161,7 @@ class App {
           name: name,
           key: name + '',
           status: 'Active',
-          parent: name === 'ARX-1' ? 'ERC-721' : undefined,
+          parentId: name === 'ARX-1' ? this.cache.AssetStandard['ERC-721'].id : undefined,
         })
       }
     }
@@ -1259,8 +1308,8 @@ class App {
           setId: this.cache.ItemSet[decodedItem.set]?.id,
           attributes: [],
           quantity: 1,
-          slotX: undefined,
-          slotY: undefined,
+          x: undefined,
+          y: undefined,
           // properties: z.record(z.any()).optional(),
           // type: z.string().default('bag'), // stash, bag, equipment, etc.
           // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
@@ -1316,7 +1365,7 @@ class App {
       // @ts-ignore
       const trades = profile.meta?.market?.trades
       if (!trades || !Array.isArray(trades) || trades.length === 0) continue
-      console.log(trades)
+      console.log('Trades', trades)
       // return
     }
     // @ts-ignore
@@ -1326,7 +1375,7 @@ class App {
           ? await this.model.Profile.findOne({ address: trade.buyer }).exec()
           : null
       const owner = await this.model.Profile.findOne({ address: trade.seller }).exec()
-      console.log(trade)
+      console.log('Trade', trade)
       if (!owner) throw new Error('Profile owner not found ' + trade.seller)
 
       // cant find user? look in filesystem
@@ -1338,7 +1387,7 @@ class App {
         key: decodedItem.tokenId,
       }).exec()
 
-      console.log(this.cache.Application.Arken, this.cache.Chain.BSC)
+      // console.log(this.cache.Application.Arken, this.cache.Chain.BSC)
 
       // TODO: needs lots of love
       if (!this.cache.Item[decodedItem.tokenId])
@@ -2032,7 +2081,7 @@ class App {
       this.cache.Guide[item.uuid] = await this.model.Guide.findOne({ key: item.uuid }).exec()
 
       if (this.cache.Guide[item.uuid]) {
-        console.log(`Guide with name ${item.name} already exists.`)
+        console.log(`Guide with name ${item.name} (${item.uuid}) already exists.`)
         continue
       }
 
@@ -3349,7 +3398,7 @@ class App {
 
     console.log('Creating profiles')
 
-    this.cache.Profile.Memefella = await this.model.Profile.findOne({ name: 'Memefella' }).exec()
+    this.cache.Profile.Memefella = await this.getProfileByName('Memefella')
 
     if (!this.cache.Profile.Memefella)
       this.cache.Profile.Memefella = await this.model.Profile.create({
