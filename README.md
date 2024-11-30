@@ -24,23 +24,21 @@
 
 # Arken Shifter
 
-
-
 ## Install
 
 Clone the repo and install dependencies:
 
 ```bash
-git clone --depth 1 --branch main https://github.com/arken-engineering/shifter.git your-project-name
+git clone --depth 1 --branch main https://github.com/arkenrealms/shifter.git your-project-name
 cd your-project-name
 rush update
 ```
 
-**Having issues installing? See our [debugging guide](https://github.com/arken-engineering/shifter/issues/1)**
+**Having issues installing? See our [debugging guide](https://github.com/arkenrealms/shifter/issues/1)**
 
 ## Starting Development
 
-Download the data here: https://github.com/arken-engineering/data
+Download the data here: https://github.com/arkenrealms/data
 
 Folder structure:
 
@@ -88,17 +86,16 @@ See our [docs and guides here](https://docs.arken.gg/installation)
 - 🌐 [Arken Telegram](https://telegram.arken.gg)
 - 📺 [Arken Realms](https://arken.gg/)
 - 📖 [Return Portal](http://return.gg/portal)
-- 💻 [Return Portal Web](https://github.com/arken-engineering/portal-web)
-- 💻 [Return Portal UI](https://github.com/arken-engineering/portal-ui)
-- 🔗 [Arken Seer](https://github.com/arken-engineering/seer)
-- 🔗 [Arken Cerebro](https://github.com/arken-engineering/cerebro)
+- 💻 [Return Portal Web](https://github.com/arkenrealms/portal-web)
+- 💻 [Return Portal UI](https://github.com/arkenrealms/portal-ui)
+- 🔗 [Arken Seer](https://github.com/arkenrealms/seer)
+- 🔗 [Arken Cerebro](https://github.com/arkenrealms/cerebro)
 
 ## License
 
 [WTFFPL](LICENSE)
 
-[github-actions-status]: https://github.com/arken-engineering/shifter/workflows/Test/badge.svg
-[github-actions-url]: https://github.com/arken-engineering/shifter/actions
-[github-tag-image]: https://img.shields.io/github/tag/arken-engineering/shifter.svg?label=version
-[github-tag-url]: https://github.com/arken-engineering/shifter/releases/latest
-
+[github-actions-status]: https://github.com/arkenrealms/shifter/workflows/Test/badge.svg
+[github-actions-url]: https://github.com/arkenrealms/shifter/actions
+[github-tag-image]: https://img.shields.io/github/tag/arkenrealms/shifter.svg?label=version
+[github-tag-url]: https://github.com/arkenrealms/shifter/releases/latest

@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import jetpack from 'fs-jetpack'
 import path from 'path'
+import dayjs from 'dayjs'
 import { log, isDebug } from '@arken/node/util'
 import { toTitleCase } from '@arken/node/util/string'
 import itemData1 from '@arken/node/data/generated/items.json'
@@ -80,8 +81,18 @@ import {
 } from '@arken/node'
 import _ from 'lodash'
 import { getAsset } from 'node:sea'
+import { kMaxLength } from 'buffer'
 
-const itemData: typeof itemData1 = Object.values(_.merge({}, itemData1, itemData2))
+const startDate = dayjs()
+let ticket = 0
+let egg = 0
+let trinket = 0
+let rrxs = 0
+const problemProfiles = {}
+
+const itemData: typeof itemData1 = _.values(
+  _.merge(_.keyBy(itemData1, 'id'), _.keyBy(itemData2, 'id'))
+)
 
 const oldPrisma = new OldPrismaClient({
   datasources: {
@@ -192,41 +203,13 @@ class App {
   async migrateAccounts() {
     await oldPrisma.$connect()
 
-    const oldAccounts = [] // await oldPrisma.account.findMany()
-    console.log(`Number of Prisma v1 accounts to migrate: ${oldAccounts.length}`)
+    const account1 = [] // await oldPrisma.account.findMany()
+    const account2 = [] // await prisma.account.findMany()
+    const accounts: typeof account2 = _.values(
+      _.merge(_.keyBy(account1, 'lastName'), _.keyBy(account2, 'lastName'))
+    )
 
-    for (const index in oldAccounts) {
-      const oldAccount = oldAccounts[index]
-
-      process.stdout.clearLine(0)
-      process.stdout.cursorTo(0)
-      process.stdout.write(`Progress: ${(parseInt(index) / oldAccounts.length) * 100}%`)
-
-      if (!oldAccount.email) continue
-
-      let newAccount = await this.model.Account.findOne({ username: oldAccount.email }).exec()
-
-      if (!newAccount) {
-        this.cache.Account[oldAccount.address] = await this.model.Account.create({
-          applicationId: this.cache.Application.Arken.id,
-          username: oldAccount.email,
-          meta: oldAccount.meta,
-          status: {
-            active: 'Active',
-          }[oldAccount.status],
-          email: oldAccount.email,
-          firstName: oldAccount.firstName,
-          lastName: oldAccount.lastName,
-          address: oldAccount.address,
-          avatar: oldAccount.avatar,
-          password: oldAccount.password,
-        })
-      }
-    }
-    process.stdout.write('\n')
-
-    const accounts = [] // await prisma.account.findMany()
-    console.log(`Number of Prisma v2 accounts to migrate: ${accounts.length}`)
+    console.log(`Number of Prisma accounts to migrate: ${accounts.length}`)
 
     for (const index in accounts) {
       const account = accounts[index]
@@ -277,89 +260,107 @@ class App {
         console.log(`Inserted account with ID: ${this.cache.Account[account.address].id}`)
       }
     }
+    process.stdout.write('\n')
+  }
 
-    const oldProfiles = await prisma.profile.findMany()
-    console.log(`Found ${oldProfiles.length} old profiles`)
+  async migrateProfiles() {
+    const profiles1 = await oldPrisma.profile.findMany()
+    const profiles2 = await prisma.profile.findMany()
+    let profiles: typeof profiles2 = _.values(
+      _.merge(_.keyBy(profiles1, 'address'), _.keyBy(profiles2, 'address'))
+    )
 
-    for (const index in oldProfiles) {
-      const oldProfile = oldProfiles[index]
+    console.log(`Found ${profiles.length} old profiles`)
+
+    // profiles = [profiles.find((p) => p.address === '0x150F24A67d5541ee1F8aBce2b69046e25d64619c')]
+
+    for (const index in profiles) {
+      const profile = profiles[index]
       process.stdout.clearLine(0)
       process.stdout.cursorTo(0)
-      process.stdout.write(`Progress: ${(parseInt(index) / oldProfiles.length) * 100}%`)
+      process.stdout.write(`Progress: ${(parseInt(index) / profiles.length) * 100}%`)
 
-      let newProfile: Arken.Profile.Types.Profile = await this.getProfileByName(oldProfile.name)
+      this.cache.Profile[profile.address] = (await this.getProfileByAddress(
+        profile.address
+      )) as Arken.Profile.Types.Profile
 
-      if (!newProfile && oldProfile?.name) {
-        console.log(oldProfile)
-        if (!this.cache.Account[oldProfile.address]) {
-          this.cache.Account[oldProfile.address] = await this.model.Account.findOne({
-            $or: [
-              {
-                username: oldProfile.name,
-              },
-              {
-                address: oldProfile.address,
-              },
-            ],
-          }).exec()
-
-          if (!this.cache.Account[oldProfile.address]) {
-            this.cache.Account[oldProfile.address] = await this.model.Account.create({
-              applicationId: this.cache.Application.Arken.id,
-              username: oldProfile.name,
-              meta: oldProfile.meta,
-              status: {
-                active: 'Active',
-              }[oldProfile.status],
-              email: oldProfile.address + '@arken.gg',
-              firstName: oldProfile.name,
-              lastName: oldProfile.address,
-              address: oldProfile.address,
-              avatar: oldProfile.avatar,
-            })
-          }
-          // oldProfile.meta.characters
-        }
-
-        newProfile = await this.model.Profile.create({
-          applicationId: this.cache.Application.Arken.id,
-          // @ts-ignore
-          name: oldProfile.name,
-          key: oldProfile.key,
-          meta: oldProfile.meta,
-          status: { active: 'Active' }[oldProfile.status],
-          address: oldProfile.address,
-          roleId: this.cache.Role[{ user: 'User' }[oldProfile.role]].id,
-          accountId: this.cache.Account[oldProfile.address].id,
-          chainId: this.cache.Chain.BSC.id,
-          // @ts-ignore
-          guildId: await this.getGuild(oldProfile.meta.guildId).id,
+      if (!this.cache.Profile[profile.address] && !this.cache.Account[profile.address]) {
+        this.cache.Account[profile.address] = await this.model.Account.findOne({
+          $or: [
+            {
+              username: profile.name,
+            },
+            {
+              address: profile.address,
+            },
+          ],
         })
 
-        // @ts-ignore
-        if (oldProfile?.meta?.characters) {
-          // @ts-ignore
-          // console.log(oldProfile.meta.characters)
-          // @ts-ignore
-          for (const character of oldProfile.meta.characters) {
-            // need to hit BSC to figure out the characters token ID so we don't duplicate
-            this.cache.Character[character.tokenId] = await this.model.Character.findOne({
-              token: character.tokenId,
-            }).exec()
+        if (!this.cache.Account[profile.address]) {
+          this.cache.Account[profile.address] = await this.model.Account.create({
+            applicationId: this.cache.Application.Arken.id,
+            username: profile.name,
+            meta: profile.meta,
+            status: {
+              active: 'Active',
+            }[profile.status],
+            email: profile.address + '@arken.gg',
+            firstName: profile.name,
+            lastName: profile.address,
+            address: profile.address,
+            avatar: profile.avatar,
+          })
+        }
+      }
 
-            if (!this.cache.Character[character.tokenId]) {
-              this.cache.Character[character.tokenId] = await this.model.Character.create({
-                applicationId: this.cache.Application.Arken.id,
-                name: character.name,
-                key: character.tokenId,
-                meta: character,
-                status: 'Active',
-                ownerId: newProfile.id,
-                token: character.tokenId,
-                classId: this.cache.CharacterClass[character.id],
-              })
-              console.log(`Inserted character with token: ${character.tokenId}`)
-            }
+      if (!this.cache.Profile[profile.address]) {
+        this.cache.Profile[profile.address] = await this.model.Profile.create({
+          applicationId: this.cache.Application.Arken.id,
+          accountId: this.cache.Account[profile.address].id,
+          chainId: this.cache.Chain.BSC.id,
+          roleId: this.cache.Role[{ user: 'User', developer: 'Developer' }[profile.role]].id,
+          // @ts-ignore
+          guildId: await this.getGuild(profile.meta.guildId).id,
+          // @ts-ignore
+          name: profile.name,
+          key: profile.address,
+          meta: profile.meta,
+          status: { active: 'Active' }[profile.status],
+          address: profile.address,
+        })
+      }
+
+      const newProfile = this.cache.Profile[profile.address]
+
+      newProfile.address = newProfile.address || profile.address
+      newProfile.name = newProfile.name || profile.name
+      newProfile.meta = _.merge(newProfile.meta, profile.meta)
+
+      await newProfile.save()
+
+      // @ts-ignore
+      if (profile?.meta?.characters) {
+        // @ts-ignore
+        // console.log(profile.meta.characters)
+        // @ts-ignore
+        for (const character of profile.meta.characters) {
+          // need to hit BSC to figure out the characters token ID so we don't duplicate
+          this.cache.Character[character.tokenId] = await this.model.Character.findOne({
+            token: character.tokenId,
+          }).exec()
+
+          if (!this.cache.Character[character.tokenId]) {
+            this.cache.Character[character.tokenId] = await this.model.Character.create({
+              applicationId: this.cache.Application.Arken.id,
+              name: character.name,
+              key: character.tokenId,
+              meta: character,
+              status: 'Active',
+              ownerId: newProfile.id,
+              token: character.tokenId,
+              classId: this.cache.CharacterClass[character.id],
+            })
+            console.log(`Inserted character with token: ${character.tokenId}`)
           }
         }
       }
@@ -442,7 +443,7 @@ class App {
       // console.log('Setting up character xxx', newProfile.characters)
 
       if (character) {
-        console.log('Setting up character ', character.id)
+        // console.log('Setting up character ', character.id)
 
         if (!character.equipment[character.equipmentIndex]) {
           character.equipment[character.equipmentIndex] = {
@@ -457,11 +458,11 @@ class App {
         }
 
         let rewardBag = character.inventory[character.inventoryIndex].items.find(
-          (item: any) => item.name === 'Runic Reward Bag'
+          (item: any) => item.name === 'Runic Bag'
         )
 
         if (!rewardBag) {
-          const itemDef = itemData.find((r) => r.name === `Runic Reward Bag`)
+          const itemDef = itemData.find((r) => r.name === `Runic Bag`)
 
           const tokenId = getTokenIdFromItem(itemDef)
 
@@ -498,61 +499,163 @@ class App {
         }
 
         const rewards = []
+        const items = []
+
+        if (
+          Array.isArray(newProfile.meta?.rewards?.items) &&
+          newProfile.meta?.rewards?.items.length > 0
+        ) {
+          // console.log('items', newProfile.meta?.rewards?.items)
+
+          for (const item of newProfile.meta?.rewards?.items) {
+            if (item.rarity === 'Mythic') console.log(item)
+
+            if (item.name === 'Santa Christmas 2021 Ticket') {
+              const itemDef = itemData.find((r) => r.name === 'Santa Christmas 2021 Ticket')
+
+              rewards.push({
+                ...itemDef,
+                quantity: 1,
+              })
+            }
+
+            if (item.name === 'Guardian Egg') {
+              const itemDef = itemData.find((r) => r.name === 'Mysterious Egg')
+
+              if (item.rarity === 'Magical') itemDef.branches[1].attributes[0].value = 6
+              else if (item.rarity === 'Rare') itemDef.branches[1].attributes[0].value = 5
+              else if (item.rarity === 'Epic') itemDef.branches[1].attributes[0].value = 4
+              else if (item.rarity === 'Mythic') itemDef.branches[1].attributes[0].value = 3
+
+              rewards.push({
+                ...itemDef,
+                quantity: 1,
+              })
+            }
+            if (item.name === 'Trinket') {
+              const items = ['Glow Fly Powder', 'Black Drake Scale', 'Black Drake Talon']
+
+              const randomItem = items[Math.floor(Math.random() * items.length)]
+
+              const itemDef = itemData.find((r) => r.name === randomItem)
+
+              if (item.rarity === 'Magical') itemDef.branches[1].attributes[0].value = 5
+              else if (item.rarity === 'Rare') itemDef.branches[1].attributes[0].value = 4
+              else if (item.rarity === 'Epic') itemDef.branches[1].attributes[0].value = 3
+              else if (item.rarity === 'Mythic') itemDef.branches[1].attributes[0].value = 3
+
+              rewards.push({
+                ...itemDef,
+                quantity: 1,
+              })
+            }
+            if (item.name === 'RUNE') {
+              const itemDef = itemData.find((r) => r.name === 'Token')
+              itemDef.branches[1].attributes[0].param1.value = 2
+              itemDef.branches[1].attributes[1].param1.value =
+                '0x2098fef7eeae592038f4f3c4b008515fed0d5886'
+
+              rewards.push({
+                ...itemDef,
+                quantity: 10000,
+              })
+            }
+          }
+        }
 
         // TODO: create the Item for these using Asset, or find the Item in their inventory and increase the quantity
         if (typeof newProfile.meta?.rewards?.runes === 'object') {
           for (const rune of Object.keys(newProfile.meta.rewards.runes)) {
-            // Look for an existing Runic Reward Bag, if doesnt exist create it
+            // Look for an existing Runic Bag, if doesnt exist create it
             // Add the runes to that
-            const quantity = newProfile.meta.rewards.runes[rune]
-
-            const itemDef = itemData.find(
+            let itemDef = itemData.find(
               (r) => r.name === `${toTitleCase(convertRuneSymbol(rune))} Rune`
             )
-            const tokenId = getTokenIdFromItem(itemDef)
 
-            let reward = await this.model.Item.findOne({
-              characterId: character.id,
-              token: tokenId,
-            })
+            if (!itemDef) {
+              console.log('Error finding rune', rune)
 
-            if (!reward)
-              reward = await this.model.Item.create({
-                assetId: this.cache.Asset[`${toTitleCase(convertRuneSymbol(rune))} Rune`].id,
-                chainId: this.cache.Chain.BSC.id,
-                characterId: character.id,
-                token: tokenId, // TODO: is there a tokenId for every rune yet? if not, reserve it and insert as an Asset. dont need token if we use asset.
-                applicationId: this.cache.Application.Arken.id,
-                // key: tokenId,
-                meta: itemDef,
-                name: itemDef.name,
-                status: 'Active',
-                materialId: this.cache.ItemMaterial[itemDef.materials?.[0]]?.id,
-                // skinId: this.cache.ItemSkin[itemDef.skin]?.id, // TODO: convert the skin mapper stuff to items, and get the skin item from there
-                // recipeId: this.cache.ItemRecipe[itemDef.recipe]?.id,
-                typeId: this.cache.ItemType[itemDef.type]?.id,
-                subTypeId: this.cache.ItemSubType[itemDef.subType]?.id,
-                specificTypeId: this.cache.ItemSpecificType[itemDef.specificType]?.id,
-                // rarityId: this.cache.ItemRarity[itemDef.rarity]?.id,
-                slotId: this.cache.ItemSlot[itemDef.slots?.[0]]?.id,
-                // setId: this.cache.ItemSet[itemDef.set]?.id,
-                attributes: [],
-                quantity,
-                x: undefined,
-                y: undefined,
-                // properties: z.record(z.any()).optional(),
-                // type: z.string().default('bag'), // stash, bag, equipment, etc.
-                // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
-                items: [],
-                capacity: undefined,
-                points: 0,
+              if (rune === 'usd' || rune === 'busd') {
+                itemDef = itemData.find((r) => r.name === 'Token')
+                itemDef.branches[1].attributes[0].param1.value = 1
+                itemDef.branches[1].attributes[1].param1.value =
+                  '0xe9e7cea3dedca5984780bafc599bd69add087d56'
+              } else if (rune === 'rxs') {
+                itemDef = itemData.find((r) => r.name === 'Token')
+                itemDef.branches[1].attributes[0].param1.value = 2
+                itemDef.branches[1].attributes[1].param1.value =
+                  '0x2098fef7eeae592038f4f3c4b008515fed0d5886'
+              }
+
+              rewards.push({
+                ...itemDef,
+                quantity: newProfile.meta.rewards.runes[rune],
               })
-
-            rewards.push(reward.id)
+            }
           }
         }
 
-        rewardBag.items = rewards
+        for (const reward of rewards) {
+          const tokenId = getTokenIdFromItem(reward)
+
+          this.cache.Item[character.id + tokenId] = await this.model.Item.findOne({
+            characterId: character.id,
+            token: tokenId,
+            // key: reward.key
+          })
+
+          if (!this.cache.Item[character.id + tokenId]) {
+            this.cache.Item[character.id + tokenId] = await this.model.Item.create({
+              assetId: this.cache.Asset[reward.name].id,
+              chainId: this.cache.Chain.BSC.id,
+              characterId: character.id,
+              token: tokenId, // TODO: is there a tokenId for every rune yet? if not, reserve it and insert as an Asset. dont need token if we use asset.
+              applicationId: this.cache.Application.Arken.id,
+              key: character.id + tokenId,
+              meta: reward,
+              name: reward.name,
+              status: 'Active',
+              materialId: this.cache.ItemMaterial[reward.materials?.[0]]?.id,
+              // skinId: this.cache.ItemSkin[reward.skin]?.id, // TODO: convert the skin mapper stuff to items, and get the skin item from there
+              // recipeId: this.cache.ItemRecipe[reward.recipe]?.id,
+              typeId: this.cache.ItemType[reward.type]?.id,
+              subTypeId: this.cache.ItemSubType[reward.subType]?.id,
+              specificTypeId: this.cache.ItemSpecificType[reward.specificType]?.id,
+              // rarityId: this.cache.ItemRarity[reward.rarity]?.id,
+              slotId: this.cache.ItemSlot[reward.slots?.[0]]?.id,
+              // setId: this.cache.ItemSet[reward.set]?.id,
+              attributes: [],
+              quantity: reward.quantity > 0 ? reward.quantity : 0,
+              x: undefined,
+              y: undefined,
+              // properties: z.record(z.any()).optional(),
+              // type: z.string().default('bag'), // stash, bag, equipment, etc.
+              // TODO: use this for the transmog / skin stuff, ingame, check if type === skin
+              items: [],
+              capacity: undefined,
+              points: 0,
+            })
+          }
+
+          const item = this.cache.Item[character.id + tokenId]
+
+          // Reset if this was setup before
+          if (dayjs(item.updatedDate).isBefore(startDate)) {
+            item.quantity = 0
+            item.meta.tokens = []
+          }
+
+          if (!item.meta.tokens) item.meta.tokens = []
+
+          item.quantity += reward.quantity > 0 ? reward.quantity : 0
+          item.meta.tokens.push(reward.key)
+
+          await item.save()
+
+          items.push(item.id)
+        }
+
+        rewardBag.items = items
 
         await rewardBag.save()
 
@@ -616,9 +719,9 @@ class App {
 
       // @ts-ignore
       await newProfile.save()
-
-      process.stdout.write('\n')
     }
+
+    process.stdout.write('\n')
   }
 
   async getProfileByAddress(address: string) {
@@ -626,7 +729,7 @@ class App {
       this.cache.Profile[address] ||
       (await this.model.Profile.findOne({
         address: address,
-      }).populate('characters.character'))
+      }).exec())
     )
   }
 
@@ -635,7 +738,7 @@ class App {
       this.cache.Profile[name] ||
       (await this.model.Profile.findOne({
         name: name,
-      }).populate('characters.character'))
+      }).exec())
     )
   }
 
@@ -931,8 +1034,8 @@ class App {
         logoURI: 'https://swap.arken.gg/images/farms/io.png',
       },
       {
-        name: 'Luph Rune',
-        symbol: 'LUMP',
+        name: 'Lux Rune',
+        symbol: 'LUX',
         oldSymbol: 'LUM',
         address: '0xD481F4eA902e207AAda9Fa093f80d50B19444253',
         chainId: 56,
@@ -961,8 +1064,8 @@ class App {
         logoURI: 'https://swap.arken.gg/images/farms/fal.png',
       },
       {
-        name: 'Lex Rune',
-        symbol: 'LEX',
+        name: 'Leni Rune',
+        symbol: 'LENI',
         oldSymbol: 'LEM',
         address: '0xFF0682D330C7a6381214fa541d8D288dD0D098ED',
         chainId: 56,
@@ -1264,7 +1367,7 @@ class App {
     const profiles = await this.model.Profile.find()
     for (const profile of profiles) {
       // @ts-ignore
-      const trades = profile.meta?.market.trades
+      const trades = profile.meta?.market?.trades
       if (!trades || !Array.isArray(trades) || trades.length === 0) continue
       console.log(trades)
       // return
@@ -1372,16 +1475,20 @@ class App {
     for (const trade of oldTrades) {
       const buyer =
         trade.buyer !== '0x0000000000000000000000000000000000000000'
-          ? await this.model.Profile.findOne({ address: trade.buyer }).exec()
+          ? await this.getProfileByAddress(trade.buyer)
           : null
-      const owner = await this.model.Profile.findOne({ address: trade.seller }).exec()
+      const owner = await this.getProfileByAddress(trade.seller)
       console.log('Trade', trade)
-      if (!owner) throw new Error('Profile owner not found ' + trade.seller)
+      if (!owner) {
+        problemProfiles[trade.seller] = 1
+        continue
+        // throw new Error('Profile owner not found ' + trade.seller)
+      }
 
       // cant find user? look in filesystem
       const decodedItem = decodeItem(trade.tokenId)
 
-      console.log('Creating item', decodedItem.name)
+      console.log('Creating trade for', decodedItem.name)
 
       this.cache.Item[decodedItem.tokenId] = await this.model.Item.findOne({
         key: decodedItem.tokenId,
@@ -1420,16 +1527,18 @@ class App {
             contractAddress: '0xdAE69A43bC73e662095b488dbDDD1D3aBA59c1FF',
           },
           status: {
-            available: 'Available',
+            available: 'Active',
             delisted: 'Delisted',
             sold: 'Sold',
           }[trade.status],
         })
     }
+
+    console.log('Problem profiles', JSON.stringify(problemProfiles))
   }
 
   async migrateTeams() {
-    console.log('Migrating guilds')
+    console.log('Migrating teams')
     // const overview = guild1OverviewData
 
     // "memberCount": 54,
@@ -1448,13 +1557,323 @@ class App {
       }
     }
 
-    for (const guild of guildsData) {
-      if (this.cache.Team[guild.id]) {
-        console.log('Guild with name ' + this.cache.Team[guild.id].name + ' already exists.')
-        continue
-      }
+    const oldTeamData = [
+      {
+        id: 1,
+        name: 'The First Order',
+        description: 'Scholars and time mages brought together by Bin Zy in the service of Zeno.',
+        images: {
+          lg: 'the-first-ones.png',
+          md: 'the-first-ones.png',
+          sm: 'the-first-ones.png',
+          alt: 'the-first-ones.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/the-first-ones.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      {
+        id: 2,
+        name: 'The Archivists',
+        description: "Keepers of lore and the guardians of Haerra's history.",
+        images: {
+          lg: 'the-archivists.png',
+          md: 'the-archivists.png',
+          sm: 'the-archivists.png',
+          alt: 'the-archivists.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/the-archivists.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      {
+        id: 3,
+        name: 'Knights of Westmarch',
+        description: 'Knights of purity and enforcers of justice.',
+        images: {
+          lg: 'knights-of-westmarch.png',
+          md: 'knights-of-westmarch.png',
+          sm: 'knights-of-westmarch.png',
+          alt: 'knights-of-westmarch.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/knights-of-westmarch.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      {
+        id: 4,
+        name: 'The Protectors',
+        description:
+          'After the destruction of the Worldstone, these dark souls serve Azorag in the destruction of all living things.',
+        images: {
+          lg: 'the-protectors.png',
+          md: 'the-protectors.png',
+          sm: 'the-protectors.png',
+          alt: 'the-protectors.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/the-protectors.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      {
+        id: 5,
+        name: 'The Destroyers',
+        description:
+          'After the destruction of the Worldstone, these survivors banded together to find and protect the Worldstone shards from falling into the hands of evil.',
+        images: {
+          lg: 'the-destroyers.png',
+          md: 'the-destroyers.png',
+          sm: 'the-destroyers.png',
+          alt: 'the-destroyers.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/the-destroyers.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      {
+        id: 6,
+        name: 'Drocos Legion',
+        description:
+          'Dragon riders and defenders, this elite group seeks to defend the few remaining dragons from the onslaught of humanoids.',
+        images: {
+          lg: 'drocos-legion.png',
+          md: 'drocos-legion.png',
+          sm: 'drocos-legion.png',
+          alt: 'drocos-legion.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/drocos-legion.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      {
+        id: 7,
+        name: 'Heden Saf',
+        description:
+          'A group of clerics and miracle-workers dedicated to the Cull: the eradication of all non-energy users in Haerra.',
+        images: {
+          lg: 'heden-saf.png',
+          md: 'heden-saf.png',
+          sm: 'heden-saf.png',
+          alt: 'heden-saf.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/heden-saf.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      {
+        id: 8,
+        name: 'Radiant Viziers',
+        description:
+          'The Radiant Viziers are a group of expert fighters dedicated to Relia, with bastions of influence all over Haerra.',
+        images: {
+          lg: 'radiant-viziers.png',
+          md: 'radiant-viziers.png',
+          sm: 'radiant-viziers.png',
+          alt: 'radiant-viziers.png',
+          ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/radiant-viziers.png',
+        },
+        background: 'guild.svg',
+        textColor: '#fff',
+      },
+      // {
+      //   id: 7,
+      //   name: 'Seers of Hexgard',
+      //   description:
+      //     'Deep within the twisted forests of Hexgard, these fearsome oracles seek wisdom from the otherworldly.',
+      //   images: {
+      //     lg: 'seers-of-hexgard.png',
+      //     md: 'seers-of-hexgard.png',
+      //     sm: 'seers-of-hexgard.png',
+      //     alt: 'seers-of-hexgard.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/seers-of-hexgard.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 8,
+      //   name: 'Guildmasters of Qiddir',
+      //   description:
+      //     'A people of order and expertise, dedicated to crafting marvelous and practical inventions to solve Haerra\'s problems.',
+      //   images: {
+      //     lg: 'guildmasters-of-qiddir.png',
+      //     md: 'guildmasters-of-qiddir.png',
+      //     sm: 'guildmasters-of-qiddir.png',
+      //     alt: 'guildmasters-of-qiddir.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/guildmasters-of-qiddir.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 9,
+      //   name: 'Alchemists of Tabr',
+      //   description:
+      //     'A people of chaos and unchained scientific pursuit, dedicated to wild progress and free innovation.',
+      //   images: {
+      //     lg: 'alchemists-of-tabr.png',
+      //     md: 'alchemists-of-tabr.png',
+      //     sm: 'alchemists-of-tabr.png',
+      //     alt: 'alchemists-of-tabr.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/alchemists-of-tabr.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 6,
+      //   name: 'Brotherhood of Vtello',
+      //   description:
+      //     'The most skilled assassins in Haerra, bound together by fraternity and coin.',
+      //   images: {
+      //     lg: 'brotherhood-of-vtello.png',
+      //     md: 'brotherhood-of-vtello.png',
+      //     sm: 'brotherhood-of-vtello.png',
+      //     alt: 'brotherhood-of-vtello.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/brotherhood-of-vtello.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 7,
+      //   name: 'Forest Dwellers of Tilia',
+      //   description:
+      //     'Legendary archers and protectors of the Ashyrah forests.',
+      //   images: {
+      //     lg: 'forest-dwellers-of-tilia.png',
+      //     md: 'forest-dwellers-of-tilia.png',
+      //     sm: 'forest-dwellers-of-tilia.png',
+      //     alt: 'forest-dwellers-of-tilia.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/forest-dwellers-of-tilia.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 7,
+      //   name: 'Tribe of the Great Faytree',
+      //   description:
+      //     'Protectors of the Faytree and speakers of the wild.',
+      //   images: {
+      //     lg: 'tribe-of-the-great-faytree.png',
+      //     md: 'tribe-of-the-great-faytree.png',
+      //     sm: 'tribe-of-the-great-faytree.png',
+      //     alt: 'tribe-of-the-great-faytree.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/tribe-of-the-great-faytree.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 7,
+      //   name: 'Ragor Necrologists',
+      //   description:
+      //     'Mysterious scholars of the undead and stewards of the spirit world.',
+      //   images: {
+      //     lg: 'ragor-necrologists.png',
+      //     md: 'ragor-necrologists.png',
+      //     sm: 'ragor-necrologists.png',
+      //     alt: 'ragor-necrologists.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/ragor-necrologists.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 7,
+      //   name: 'The Tribe of Carnage',
+      //   description:
+      //     '	One with blood and blade, the rage of these barbarians knows no bounds.',
+      //   images: {
+      //     lg: 'the-tribe-of-carnage.png',
+      //     md: 'the-tribe-of-carnage.png',
+      //     sm: 'the-tribe-of-carnage.png',
+      //     alt: 'the-tribe-of-carnage.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/the-tribe-of-carnage.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 7,
+      //   name: 'Paladins of Ashyrah',
+      //   description:
+      //     'A group of upright fighters who adhere to a strict code instead of the dictates of a single religion.',
+      //   images: {
+      //     lg: 'the-tribe-of-carnage.png',
+      //     md: 'the-tribe-of-carnage.png',
+      //     sm: 'the-tribe-of-carnage.png',
+      //     alt: 'the-tribe-of-carnage.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/the-tribe-of-carnage.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+      // {
+      //   id: 7,
+      //   name: 'Wardens of Irondell',
+      //   description:
+      //     'Watchers over the Fayhelm forests and guardians of Irondell.',
+      //   images: {
+      //     lg: 'wardens-of-irondell.png',
+      //     md: 'wardens-of-irondell.png',
+      //     sm: 'wardens-of-irondell.png',
+      //     alt: 'wardens-of-irondell.png',
+      //     ipfs: process.env.REACT_APP_PUBLIC_URL + 'images/teams/wardens-of-irondell.png',
+      //   },
+      //   background: 'guild.svg',
+      //   textColor: '#fff',
+      //   users: 0,
+      //   activeMemberCount: 0,
+      //   memberCount: 0,
+      //   points: 0,
+      // },
+    ]
 
-      const details = require('../../data/guilds/' + guild.id + '/overview.json')
+    for (const guild of guildsData) {
+      // if (this.cache.Team[guild.id]) {
+      //   console.log('Guild with name ' + this.cache.Team[guild.id].name + ' already exists.')
+      //   continue
+      // }
+
+      const details = jetpack.read(path.resolve(`../data/guilds/${guild.id}/overview.json`), 'json')
 
       this.cache.Team[details.name] = await this.model.Team.findOne({ key: details.name })
 
@@ -1471,10 +1890,21 @@ class App {
 
       this.cache.Team[guild.id] = this.cache.Team[details.name]
 
+      const team = this.cache.Team[details.name]
+
+      if (!team.meta.images) {
+        team.meta = { ...team.meta, ...oldTeamData.find((t: any) => t.name === team.name) }
+
+        await team.save()
+      }
+
       console.log('Guild with name ' + details.name)
 
       // TODO
-      const memberDetails = require('../data/guilds/' + guild.id + '/memberDetails.json')
+      const memberDetails = jetpack.read(
+        path.resolve(`../data/guilds/${guild.id}/memberDetails.json`),
+        'json'
+      )
 
       // {
       //   "address": "0xa94210Bce97C665aCd1474B6fC4e9817a456EECd",
@@ -1484,32 +1914,38 @@ class App {
       //   "isActive": true,
       //   "characterId": 6
       // },
-      // TODO: insert character?
-      // for (const member of memberDetails) {
-      //   const profile = await this.model.Profile.findOne({ address: member.address })
+      for (const member of memberDetails) {
+        const profile = await this.model.Profile.findOne({ address: member.address }).populate(
+          'characters'
+        )
 
-      //   if (profile) {
-      //     console.log('Character with guild ' + details.name + ' for profile ' + member.address)
+        if (profile) {
+          console.log('Character with guild ' + details.name + ' for profile ' + member.address)
 
-      //     this.cache.Character[profile.id] = await this.model.Character.findOne({
-      //       token: profile.id,
-      //     }).exec()
+          if (profile.points <= 0) profile.points = member.points
+          if (!profile.teamId) profile.teamId = this.cache.Team[guild.id].id
 
-      //     if (!this.cache.Character[profile.id]) {
-      //       this.cache.Character[profile.id] = await this.model.Character.create({
-      //         applicationId: this.cache.Application.Arken.id,
-      //         name: character.name,
-      //         key: profile.id,
-      //         meta: character,
-      //         status: 'Active',
-      //         ownerId: newProfile.id,
-      //         token: profile.id,
-      //         classId: this.cache.CharacterClass[character.id],
-      //       })
-      //       console.log(`Inserted character with token: ${profile.id}`)
-      //     }
-      //   }
-      // }
+          await profile.save()
+
+          // this.cache.Character[profile.id] = await this.model.Character.findOne({
+          //   token: profile.id,
+          // })
+
+          // if (!this.cache.Character[profile.id]) {
+          //   // this.cache.Character[profile.id] = await this.model.Character.create({
+          //   //   applicationId: this.cache.Application.Arken.id,
+          //   //   name: character.name,
+          //   //   key: profile.id,
+          //   //   meta: character,
+          //   //   status: 'Active',
+          //   //   ownerId: newProfile.id,
+          //   //   token: profile.id,
+          //   //   classId: this.cache.CharacterClass[character.id],
+          //   // })
+          //   console.log(`Character for guild doesn't exist: ${profile.id}`)
+          // }
+        }
+      }
     }
 
     // Use profiles to generate characters
@@ -1814,10 +2250,12 @@ class App {
     for (const item of transmuteRules) {
       if (!item.name) continue
 
-      const existingItem = await this.model.ItemTransmuteRule.findOne({ name: item.name })
-      if (existingItem) continue
+      this.cache.ItemTransmuteRule[item.name] = await this.model.ItemTransmuteRule.findOne({
+        name: item.name,
+      })
+      if (this.cache.ItemTransmuteRule[item.name]) continue
 
-      const newItemTransmuteRule = await this.model.ItemTransmuteRule.create({
+      this.cache.ItemTransmuteRule[item.name] = await this.model.ItemTransmuteRule.create({
         applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
@@ -1826,7 +2264,7 @@ class App {
         status: 'Active',
       })
 
-      await newItemTransmuteRule.save()
+      await this.cache.ItemTransmuteRule[item.name].save()
     }
   }
 
@@ -2443,7 +2881,7 @@ class App {
     for (const item of itemSpecificTypes) {
       if (!item.name) continue
 
-      this.cache.ItemSpecificType[item.name] = await this.model.ItemType.findOne({
+      this.cache.ItemSpecificType[item.name] = await this.model.ItemSpecificType.findOne({
         name: item.name,
       })
       this.oldCache.ItemSpecificType[item.id] = this.cache.ItemSpecificType[item.name]
@@ -2453,7 +2891,7 @@ class App {
         continue
       }
 
-      this.cache.ItemSpecificType[item.name] = await this.model.ItemType.create({
+      this.cache.ItemSpecificType[item.name] = await this.model.ItemSpecificType.create({
         applicationId: this.cache.Application.Arken.id,
         name: item.name,
         description: '',
@@ -2635,6 +3073,63 @@ class App {
     }
   }
 
+  async migrateItemRanks() {
+    const itemRanks = [
+      {
+        value: 0,
+        name: 'F',
+      },
+      {
+        value: 40,
+        name: 'D',
+      },
+      {
+        value: 50,
+        name: 'C',
+      },
+      {
+        value: 60,
+        name: 'B',
+      },
+      {
+        value: 70,
+        name: 'A',
+      },
+      {
+        value: 80,
+        name: 'S',
+      },
+      {
+        value: 90,
+        name: 'SS',
+      },
+      {
+        value: 100,
+        name: 'SSS',
+      },
+    ]
+
+    for (const item of itemRanks) {
+      if (!item.name) continue
+
+      this.cache.ItemRank[item.name] = await this.model.ItemRank.findOne({ name: item.name })
+      if (this.cache.ItemRank[item.name]) {
+        console.log('Item rank ' + item.name + ' already exists')
+        continue
+      }
+
+      this.cache.ItemRank[item.name] = await this.model.ItemRank.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: item.name,
+        description: '',
+        key: item.name,
+        meta: item,
+        value: item.value,
+        status: 'Active',
+      })
+    }
+  }
+
   async migrateItemRecipes() {
     console.log('Migrating item recipes')
 
@@ -2728,7 +3223,7 @@ class App {
     const bounties = [
       {
         name: 'Document Arken Realms on Wikipedia',
-        reward: '50 ZOD',
+        reward: '50 ZEL',
         status: 'Active', // 'Ready to be accepted, ask in Telegram.'
         claimedBy: 'Nobody yet.',
         description:
@@ -2736,7 +3231,7 @@ class App {
       },
       {
         name: 'List Evolution Isles on various game listing sites',
-        reward: '50 ZOD',
+        reward: '50 ZEL',
         status: 'Paused', // 'Paused. Wait for Evo 2 and free account system.',
         claimedBy: 'Nobody yet.',
         description:
@@ -2744,7 +3239,7 @@ class App {
       },
       {
         name: 'Categorize AI generated items into mythic/epic/rare/magical',
-        reward: '2 ZOD per item',
+        reward: '2 ZEL per item',
         status: 'Paused', //'Paused. Wait for more items to be generated (October).',
         claimedBy: 'Nobody yet.',
         description:
@@ -2830,7 +3325,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [],
             winnerId: await this.findProfileIdByUsername('Matheus'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 5 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 10 },
               { ownerId: await this.findProfileIdByUsername('Discomonk'), amount: 20 },
               { ownerId: await this.findProfileIdByUsername('FireLord'), amount: 40 },
@@ -2848,7 +3343,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 2 },
               { ownerId: await this.findProfileIdByUsername('SamKouCaille'), amount: 2 },
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 1 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 1 },
             ],
             content: `Item from the Giveaway Wallet that wasn't given away. Time to search the inventory..`,
           },
@@ -2859,7 +3354,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [],
             winnerId: await this.findProfileIdByUsername('Riccardo'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 20 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 20 },
               { ownerId: await this.findProfileIdByUsername('FireLord'), amount: 40 },
               { ownerId: await this.findProfileIdByUsername('Monk'), amount: 50 },
               { ownerId: await this.findProfileIdByUsername('Discomonk'), amount: 60 },
@@ -2874,7 +3369,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [],
             winnerId: await this.findProfileIdByUsername('Matheus'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 1 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 2 },
             ],
@@ -2888,7 +3383,7 @@ class App {
             winnerId: await this.findProfileIdByUsername('Matheus'),
             entries: [
               { ownerId: await this.findProfileIdByUsername('SamKouCaille'), amount: 1 },
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 1 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
             ],
@@ -2901,7 +3396,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [{ raffleRequirement: { key: 'noWinsThisYear' } }],
             winnerId: await this.findProfileIdByUsername('Maiev'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 20 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 20 },
               { ownerId: await this.findProfileIdByUsername('Monk'), amount: 70 },
               { ownerId: await this.findProfileIdByUsername('Discomonk'), amount: 80 },
               { ownerId: await this.findProfileIdByUsername('Maiev'), amount: 100 },
@@ -2940,7 +3435,7 @@ class App {
             winnerId: await this.findProfileIdByUsername('Lazy'),
             entries: [
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 5 },
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 5 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 5 },
             ],
             content: `Item from the Giveaway Wallet that wasn't given away. Time to search the inventory..`,
           },
@@ -2974,7 +3469,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Disco'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 2 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 2 },
             ],
             content: `You definitely like RNG.`,
           },
@@ -2988,7 +3483,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Ekke'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Maiev'), amount: 2 },
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 3 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 3 },
               { ownerId: await this.findProfileIdByUsername('Disco'), amount: 3 },
             ],
             content: `This is the same scroll that's transmuted using 1 ZOD.`,
@@ -3045,7 +3540,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Ekke'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Maiev'), amount: 5 },
-              { ownerId: await this.findProfileIdByUsername('Binzy'), amount: 5 },
+              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 5 },
             ],
             content: `You'll receive one Rune character (choose your class).`,
@@ -3373,12 +3868,28 @@ class App {
 
     console.log('Creating roles')
 
+    this.cache.Role.Guest = await this.model.Role.findOne({ name: 'Guest' }).exec()
+
+    if (!this.cache.Role.Guest)
+      this.cache.Role.Guest = await this.model.Role.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Guest',
+      })
+
     this.cache.Role.User = await this.model.Role.findOne({ name: 'User' }).exec()
 
     if (!this.cache.Role.User)
       this.cache.Role.User = await this.model.Role.create({
         applicationId: this.cache.Application.Arken.id,
         name: 'User',
+      })
+
+    this.cache.Role.Developer = await this.model.Role.findOne({ name: 'Developer' }).exec()
+
+    if (!this.cache.Role.Developer)
+      this.cache.Role.Developer = await this.model.Role.create({
+        applicationId: this.cache.Application.Arken.id,
+        name: 'Developer',
       })
 
     console.log('Creating accounts')
@@ -3743,6 +4254,45 @@ class App {
       })
   }
 
+  async getChristmasTicketWhales() {
+    console.log('Getting tickets')
+
+    const tickets = await this.model.Item.aggregate([
+      { $match: { name: 'Santa Christmas 2021 Ticket' } },
+      { $sort: { quantity: -1 } },
+      { $limit: 15 },
+      {
+        $lookup: {
+          from: 'Character',
+          localField: 'characterId',
+          foreignField: '_id',
+          as: 'character',
+        },
+      },
+      { $unwind: '$character' },
+      {
+        $lookup: {
+          from: 'Profile',
+          localField: 'character.profileId',
+          foreignField: '_id',
+          as: 'character.profile',
+        },
+      },
+      { $unwind: '$character.profile' },
+    ])
+
+    // console.log(tickets)
+
+    for (const ticket of tickets) {
+      // console.log(ticket.character)
+      if (!ticket.character?.profile) continue
+      console.log(
+        ticket.character.profile.meta.username || ticket.character.profile.name,
+        ticket.quantity
+      )
+    }
+  }
+
   db: any
   model: any
   cache: any
@@ -3798,25 +4348,12 @@ class App {
       }
     }
 
+    // await this.getChristmasTicketWhales()
     await this.createOmniverse() //
     await this.migrateEras()
     await this.migrateCharacterAttributes() //
     await this.migrateGuides() //
 
-    await this.migrateAssetStandards() //
-    await this.migrateAssets() //
-    await this.migrateItemAttributes() //
-    await this.migrateItemRecipes() //
-    await this.migrateItemMaterials() //
-    // await this.migrateItemAttributeParams() // forget about this?
-    // await this.migrateItemParams() // forget about this?
-    await this.migrateItemSpecificTypes() //
-    await this.migrateItemSubTypes() //
-    await this.migrateItemTypes() //
-    // await this.migrateItemAffixes()
-    await this.migrateItemSlots() //
-    await this.migrateItemRarities() //
-    await this.migrateItemSets() //
     // await this.migrateItemTransmuteRules() // fill this in and do later
     // await this.migrateSkills() //
     // await this.migrateSkillMods() //
@@ -3857,8 +4394,25 @@ class App {
     // await this.migrateSolarSystems()
     // await this.migratePlanets()
 
-    // await this.migrateTeams()
-    await this.migrateAccounts()
+    await this.migrateAssetStandards() //
+    await this.migrateAssets() //
+    await this.migrateItemAttributes() //
+    await this.migrateItemRecipes() //
+    await this.migrateItemMaterials() //
+    // await this.migrateItemAttributeParams() // forget about this?
+    // await this.migrateItemParams() // forget about this?
+    await this.migrateItemSpecificTypes() //
+    await this.migrateItemSubTypes() //
+    await this.migrateItemTypes() //
+    // await this.migrateItemAffixes()
+    await this.migrateItemSlots() //
+    await this.migrateItemRarities() //
+    await this.migrateItemRanks() //
+    await this.migrateItemSets() //
+
+    await this.migrateTeams()
+    // await this.migrateAccounts()
+    await this.migrateProfiles()
     // await this.migrateClaims()
     // // await this.migrateGameItems()
     await this.migrateOldTrades()
