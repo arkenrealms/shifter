@@ -17,6 +17,8 @@ import guild1MemberwData from '../../data/guilds/1/memberDetails.json'
 import referrals from '../../data/affiliate/refers.json'
 import trades from '../../data/trades.json'
 import oldTrades from '../../data/trades2.json'
+import stats from '../../data/stats.json'
+import runes from '../../data/runes.json'
 import areaNameChoices from '@arken/node/data/generated/areaNameChoices.json'
 import skills from '@arken/node/data/generated/skills.json'
 import skillMods from '@arken/node/data/generated/skillMods.json'
@@ -190,9 +192,9 @@ class App {
           description: oldGuild.description,
           meta: oldGuild,
           status: 'Active',
-          ownerId: this.cache.Profile.Memefella.id,
-          createdById: this.cache.Profile.Memefella.id,
-          editedById: this.cache.Profile.Memefella.id,
+          ownerId: this.cache.Profile.Hashwarp.id,
+          createdById: this.cache.Profile.Hashwarp.id,
+          editedById: this.cache.Profile.Hashwarp.id,
         })
       }
     }
@@ -869,10 +871,28 @@ class App {
     //   "address": "0x2098fef7eeae592038f4f3c4b008515fed0d5886",
     //   "chainId": 56,
     //   "decimals": 18,
-    //   "logoURI": "https://swap.arken.gg/images/rune-500x500.png"
+    //   "logoURI": "/images/rune-500x500.png"
     // },
 
-    const runes = [
+    const items = [
+      {
+        name: 'RUNE',
+        symbol: 'RUNE',
+        oldSymbol: 'RUNE',
+        address: '0xa9776b590bfc2f956711b3419910a5ec1f63153e',
+        chainId: 56,
+        decimals: 18,
+        logoURI: '/images/farms/rune.png',
+      },
+      {
+        name: 'RXS',
+        symbol: 'RXS',
+        oldSymbol: 'RXS',
+        address: '0x2098fef7eeae592038f4f3c4b008515fed0d5886',
+        chainId: 56,
+        decimals: 18,
+        logoURI: '/images/farms/rxs.png',
+      },
       {
         name: 'Ex Rune',
         symbol: 'EX',
@@ -881,7 +901,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 60,
-        logoURI: 'https://swap.arken.gg/images/farms/el.png',
+        logoURI: '/images/farms/ex.png',
       },
       {
         name: 'Elm Rune',
@@ -891,7 +911,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 61,
-        logoURI: 'https://swap.arken.gg/images/farms/eld.png',
+        logoURI: '/images/farms/elm.png',
       },
       {
         name: 'Eva Rune',
@@ -901,7 +921,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 62,
-        logoURI: 'https://swap.arken.gg/images/farms/eth.png',
+        logoURI: '/images/farms/eva.png',
       },
       {
         name: 'TYR Rune',
@@ -911,7 +931,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 63,
-        logoURI: 'https://swap.arken.gg/images/farms/tir.png',
+        logoURI: '/images/farms/tyr.png',
       },
       {
         name: 'Nen Rune',
@@ -921,7 +941,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 64,
-        logoURI: 'https://swap.arken.gg/images/farms/nef.png',
+        logoURI: '/images/farms/nen.png',
       },
       {
         name: 'Isa Rune',
@@ -931,17 +951,17 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 65,
-        logoURI: 'https://swap.arken.gg/images/farms/ith.png',
+        logoURI: '/images/farms/isa.png',
       },
       {
-        name: 'Tai Rune',
-        symbol: 'TAI',
+        name: 'Tato Rune',
+        symbol: 'TATO',
         oldSymbol: 'TAL',
         address: '0x5DE72A6fca2144Aa134650bbEA92Cc919244F05D',
         chainId: 56,
         decimals: 18,
         id: 66,
-        logoURI: 'https://swap.arken.gg/images/farms/tal.png',
+        logoURI: '/images/farms/tato.png',
       },
       {
         name: 'Ro Rune',
@@ -951,7 +971,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 67,
-        logoURI: 'https://swap.arken.gg/images/farms/ral.png',
+        logoURI: '/images/farms/ro.png',
       },
       {
         name: 'Ore Rune',
@@ -961,7 +981,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 68,
-        logoURI: 'https://swap.arken.gg/images/farms/ort.png',
+        logoURI: '/images/farms/ore.png',
       },
       {
         name: 'Thal Rune',
@@ -971,7 +991,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 69,
-        logoURI: 'https://swap.arken.gg/images/farms/thul.png',
+        logoURI: '/images/farms/thal.png',
       },
       {
         name: 'Ash Rune',
@@ -981,7 +1001,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 70,
-        logoURI: 'https://swap.arken.gg/images/farms/amn.png',
+        logoURI: '/images/farms/ash.png',
       },
       {
         name: 'Solo Rune',
@@ -991,7 +1011,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 71,
-        logoURI: 'https://swap.arken.gg/images/farms/sol.png',
+        logoURI: '/images/farms/solo.png',
       },
       {
         name: 'Sen Rune',
@@ -1001,7 +1021,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 72,
-        logoURI: 'https://swap.arken.gg/images/farms/shael.png',
+        logoURI: '/images/farms/sen.png',
       },
       {
         name: 'Da Rune',
@@ -1011,7 +1031,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 73,
-        logoURI: 'https://swap.arken.gg/images/farms/dol.png',
+        logoURI: '/images/farms/da.png',
       },
       {
         name: 'Han Rune',
@@ -1021,7 +1041,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 74,
-        logoURI: 'https://swap.arken.gg/images/farms/hel.png',
+        logoURI: '/images/farms/han.png',
       },
       {
         name: 'Ion Rune',
@@ -1031,7 +1051,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 75,
-        logoURI: 'https://swap.arken.gg/images/farms/io.png',
+        logoURI: '/images/farms/ion.png',
       },
       {
         name: 'Lux Rune',
@@ -1041,7 +1061,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 76,
-        logoURI: 'https://swap.arken.gg/images/farms/lum.png',
+        logoURI: '/images/farms/lux.png',
       },
       {
         name: 'Ka Rune',
@@ -1051,7 +1071,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 77,
-        logoURI: 'https://swap.arken.gg/images/farms/ko.png',
+        logoURI: '/images/farms/ka.png',
       },
       {
         name: 'Fus Rune',
@@ -1061,7 +1081,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 78,
-        logoURI: 'https://swap.arken.gg/images/farms/fal.png',
+        logoURI: '/images/farms/fus.png',
       },
       {
         name: 'Leni Rune',
@@ -1071,7 +1091,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 79,
-        logoURI: 'https://swap.arken.gg/images/farms/lem.png',
+        logoURI: '/images/farms/leni.png',
       },
       {
         name: 'Pai Rune',
@@ -1081,7 +1101,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 80,
-        logoURI: 'https://swap.arken.gg/images/farms/pul.png',
+        logoURI: '/images/farms/pai.png',
       },
       {
         name: 'Uln Rune',
@@ -1091,7 +1111,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 81,
-        logoURI: 'https://swap.arken.gg/images/farms/um.png',
+        logoURI: '/images/farms/uln.png',
       },
       {
         name: 'Mor Rune',
@@ -1101,7 +1121,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 82,
-        logoURI: 'https://swap.arken.gg/images/farms/mal.png',
+        logoURI: '/images/farms/mor.png',
       },
       {
         name: 'Isk Rune',
@@ -1111,7 +1131,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 83,
-        logoURI: 'https://swap.arken.gg/images/farms/ist.png',
+        logoURI: '/images/farms/isk.png',
       },
       {
         name: 'Gon Rune',
@@ -1121,7 +1141,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 84,
-        logoURI: 'https://swap.arken.gg/images/farms/gul.png',
+        logoURI: '/images/farms/gon.png',
       },
       {
         name: 'Val Rune',
@@ -1131,7 +1151,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 85,
-        logoURI: 'https://swap.arken.gg/images/farms/vex.png',
+        logoURI: '/images/farms/val.png',
       },
       {
         name: 'Oh Rune',
@@ -1141,7 +1161,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 86,
-        logoURI: 'https://swap.arken.gg/images/farms/ohm.png',
+        logoURI: '/images/farms/oh.png',
       },
       {
         name: 'Lor Rune',
@@ -1151,7 +1171,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 87,
-        logoURI: 'https://swap.arken.gg/images/farms/lo.png',
+        logoURI: '/images/farms/lor.png',
       },
       {
         name: 'Su Rune',
@@ -1161,7 +1181,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 88,
-        logoURI: 'https://swap.arken.gg/images/farms/sur.png',
+        logoURI: '/images/farms/su.png',
       },
       {
         name: 'Beru Rune',
@@ -1171,7 +1191,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 89,
-        logoURI: 'https://swap.arken.gg/images/farms/ber.png',
+        logoURI: '/images/farms/beru.png',
       },
       {
         name: 'Jua Rune',
@@ -1181,7 +1201,7 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 90,
-        logoURI: 'https://swap.arken.gg/images/farms/jah.png',
+        logoURI: '/images/farms/jua.png',
       },
       {
         name: 'Chin Rune',
@@ -1191,40 +1211,64 @@ class App {
         chainId: 56,
         decimals: 18,
         id: 91,
-        logoURI: 'https://swap.arken.gg/images/farms/cham.png',
+        logoURI: '/images/farms/chin.png',
       },
       {
-        name: 'Zel Rune',
-        symbol: 'ZEL',
+        name: 'Zeno Rune',
+        symbol: 'ZENO',
         oldSymbol: 'ZOD',
         address: '0x3e151ca82b3686f555c381530732df1cfc3c7890',
         chainId: 56,
         decimals: 18,
         id: 92,
-        logoURI: 'https://swap.arken.gg/images/farms/zod.png',
-      },
-      {
-        name: 'Tato Rune',
-        symbol: 'TATO',
-        oldSymbol: 'TATO',
-        address: '',
-        chainId: 56,
-        decimals: 18,
-        id: 92,
-        logoURI: 'https://swap.arken.gg/images/farms/tato.png',
+        logoURI: '/images/farms/zeno.png',
       },
     ]
 
     // @ts-ignore
-    for (const item of runes) {
+    for (const item of items) {
       if (!item.id) continue
 
       this.oldCache.Asset[item.id] = item
 
-      if (this.cache.Asset[item.name]) {
-        console.log('Asset ' + item.name + ' already exists')
-        continue
-      }
+      console.log('ChainToken creating ', item.name)
+
+      this.cache.ChainContract[item.name] = await this.model.ChainContract.findOne({
+        chainId: this.cache.Chain.BSC.id,
+        address: item.address,
+      }).exec()
+
+      if (!this.cache.ChainContract[item.name])
+        this.cache.ChainContract[item.name] = await this.model.ChainContract.create({
+          applicationId: this.cache.Application.Arken.id,
+          chainId: this.cache.Chain.BSC.id,
+          name: item.name,
+          key: this.cache.Application.Arken.key + this.cache.Chain.BSC.key + item.address + '',
+          meta: item,
+          status: 'Active',
+          type: 'Token',
+          standards: [this.cache.AssetStandard['ERC-20']],
+          address: item.address,
+        })
+
+      this.cache.ChainToken[item.name] = await this.model.ChainToken.findOne({
+        chainId: this.cache.Chain.BSC.id,
+        address: item.address,
+      })
+
+      if (!this.cache.ChainToken[item.name])
+        this.cache.ChainToken[item.name] = await this.model.ChainToken.create({
+          applicationId: this.cache.Application.Arken.id,
+          chainId: this.cache.Chain.BSC.id,
+          chainContractId: this.cache.ChainContract[item.name].id,
+          symbol: item.symbol,
+          name: item.name,
+          key: this.cache.Application.Arken.key + this.cache.Chain.BSC.key + item.address + '',
+          meta: item,
+          status: 'Active',
+          address: item.address,
+          decimals: item.decimals,
+        })
 
       console.log('Asset creating ', item.name)
 
@@ -1242,16 +1286,59 @@ class App {
           status: 'Active',
           uri:
             'https://arken.gg/item/' + item.name.replace(/ /gi, '-').replace("'", '').toLowerCase(),
-          type: 'ERC-721',
-          standards: [this.cache.AssetStandard['ARX-1']],
+          type: 'NFT',
+          standards: item.name.includes('Rune')
+            ? [this.cache.AssetStandard['ARX-1'], this.cache.AssetStandard['ERC-720']]
+            : [this.cache.AssetStandard['ERC-20']],
         })
 
       // console.log(asset.id)
     }
   }
 
+  async migrateStats() {
+    const game = this.cache.Game['Runic Raids']
+    const key = 'latest'
+
+    this.cache.GameStat[key] = await this.model.GameStat.findOne({
+      key,
+    })
+
+    if (!this.cache.GameStat[key]) {
+      this.cache.GameStat[key] = await this.model.GameStat.create({
+        applicationId: this.cache.Application.Arken.id,
+        key,
+        status: 'Active',
+        gameId: game.id,
+        meta: {
+          ...stats,
+          runes,
+        },
+      })
+
+      game.statId = this.cache.GameStat[key].id
+
+      await game.save()
+    }
+  }
+
   async migrateAssetStandards() {
-    const standards = ['ERC-721', 'ERC-1155', 'ARX-1']
+    const standards = [
+      'ERC-20',
+      'ERC-721',
+      'ERC-1155',
+      'ERC-4626',
+      'ERC-777',
+      'ERC-2981',
+      'ERC-223',
+      'ERC-827',
+      'ERC-137',
+      'ERC-1820',
+      'ERC-725',
+      'ERC-735',
+      'ERC-4337',
+      'ARX-1',
+    ]
 
     for (const name of standards) {
       this.cache.AssetStandard[name] = await this.model.AssetStandard.findOne({
@@ -1350,7 +1437,7 @@ class App {
   }
 
   async migrateTrades() {
-    // {"market": {"trades": []}, "points": 1, "address": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "guildId": 2, "premium": {"locked": 0, "features": [], "unlocked": 0}, "rewards": {"items": [], "runes": {}}, "daoVotes": [], "holdings": {}, "username": "Harry", "evolution": {}, "inventory": {"items": [{"id": 1, "from": "0x6Bf051ce847A0EBBc10fA22884C01D550BD40269", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 8, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 8, "variant": 1, "attributeId": 1}, {"value": 2, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 1}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Magical", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001100810021001111111", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649762142003, "isRetired": true, "shorthand": "8-2", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 8, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 2, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.44, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110081002100111...111", "isUnequipable": false, "isTransferable": true}, {"id": 1, "from": "0x85C07b6a475Ee19218D0ef9C278C7e58715Af842", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 14, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 14, "variant": 1, "attributeId": 1}, {"value": 1, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 0}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Rare", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001101410011001111101", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649764095769, "isRetired": true, "shorthand": "14-1", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 14, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 1, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.85, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110141001100111...101", "isUnequipable": false, "isTransferable": true}, {"id": 3, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000030500020002000024182", "createdAt": 1649763909508, "perfection": 0.5}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10020000201000500240030991", "createdAt": 1649763909610, "perfection": 0.4}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030031002432194", "createdAt": 1649763909691, "perfection": 0.45}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100040033004045827", "createdAt": 1649763909821, "perfection": 0.3}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030034002847742", "createdAt": 1649763909914, "perfection": 0.43}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "100200002010006003200287488", "createdAt": 1649763909984, "perfection": 0.65}, {"id": 4, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10010000410001000120319017", "createdAt": 1649763912928, "perfection": 1}]}, "characters": [{"id": 7, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "699", "transferredAt": 1627276078338}], "permissions": {"admin": {}}, "achievements": [1], "joinedGuildAt": 1627274005785, "rewardHistory": [], "lastGamePlayed": 0, "lifetimeRewards": {"items": [], "runes": {}}, "craftedItemCount": 7, "equippedItemCount": 0, "inventoryItemCount": 0, "transferredInCount": 0, "transferredOutCount": 2, "marketTradeSoldCount": 0, "guildMembershipTokenId": 699, "marketTradeListedCount": 0, "isGuildMembershipActive": true}
+    // {"market": {"trades": []}, "points": 1, "address": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "guildId": 2, "premium": {"locked": 0, "features": [], "unlocked": 0}, "rewards": {"items": [], "runes": {}}, "daoVotes": [], "holdings": {}, "username": "Harry", "evolution": {}, "inventory": {"items": [{"id": 1, "from": "0x6Bf051ce847A0EBBc10fA22884C01D550BD40269", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 8, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 8, "variant": 1, "attributeId": 1}, {"value": 2, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 1}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Magical", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Runeform": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001100810021001111111", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649762142003, "isRetired": true, "shorthand": "8-2", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 8, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 2, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.44, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110081002100111...111", "isUnequipable": false, "isTransferable": true}, {"id": 1, "from": "0x85C07b6a475Ee19218D0ef9C278C7e58715Af842", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 14, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 14, "variant": 1, "attributeId": 1}, {"value": 1, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 0}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Rare", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Runeform": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001101410011001111101", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649764095769, "isRetired": true, "shorthand": "14-1", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 14, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 1, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.85, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110141001100111...101", "isUnequipable": false, "isTransferable": true}, {"id": 3, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000030500020002000024182", "createdAt": 1649763909508, "perfection": 0.5}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10020000201000500240030991", "createdAt": 1649763909610, "perfection": 0.4}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030031002432194", "createdAt": 1649763909691, "perfection": 0.45}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100040033004045827", "createdAt": 1649763909821, "perfection": 0.3}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030034002847742", "createdAt": 1649763909914, "perfection": 0.43}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "100200002010006003200287488", "createdAt": 1649763909984, "perfection": 0.65}, {"id": 4, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10010000410001000120319017", "createdAt": 1649763912928, "perfection": 1}]}, "characters": [{"id": 7, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "699", "transferredAt": 1627276078338}], "permissions": {"admin": {}}, "achievements": [1], "joinedGuildAt": 1627274005785, "rewardHistory": [], "lastGamePlayed": 0, "lifetimeRewards": {"items": [], "runes": {}}, "craftedItemCount": 7, "equippedItemCount": 0, "inventoryItemCount": 0, "transferredInCount": 0, "transferredOutCount": 2, "marketTradeSoldCount": 0, "guildMembershipTokenId": 699, "marketTradeListedCount": 0, "isGuildMembershipActive": true}
     // {
     //   "id": 1,
     //   "seller": "0x576a83f7B93df7D6BE68A3cfF148eDF9CF77D810",
@@ -1449,7 +1536,7 @@ class App {
   }
 
   async migrateOldTrades() {
-    // {"market": {"trades": []}, "points": 1, "address": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "guildId": 2, "premium": {"locked": 0, "features": [], "unlocked": 0}, "rewards": {"items": [], "runes": {}}, "daoVotes": [], "holdings": {}, "username": "Harry", "evolution": {}, "inventory": {"items": [{"id": 1, "from": "0x6Bf051ce847A0EBBc10fA22884C01D550BD40269", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 8, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 8, "variant": 1, "attributeId": 1}, {"value": 2, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 1}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Magical", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001100810021001111111", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649762142003, "isRetired": true, "shorthand": "8-2", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 8, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 2, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.44, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110081002100111...111", "isUnequipable": false, "isTransferable": true}, {"id": 1, "from": "0x85C07b6a475Ee19218D0ef9C278C7e58715Af842", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 14, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 14, "variant": 1, "attributeId": 1}, {"value": 1, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 0}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Rare", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001101410011001111101", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649764095769, "isRetired": true, "shorthand": "14-1", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 14, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 1, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.85, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110141001100111...101", "isUnequipable": false, "isTransferable": true}, {"id": 3, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000030500020002000024182", "createdAt": 1649763909508, "perfection": 0.5}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10020000201000500240030991", "createdAt": 1649763909610, "perfection": 0.4}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030031002432194", "createdAt": 1649763909691, "perfection": 0.45}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100040033004045827", "createdAt": 1649763909821, "perfection": 0.3}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030034002847742", "createdAt": 1649763909914, "perfection": 0.43}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "100200002010006003200287488", "createdAt": 1649763909984, "perfection": 0.65}, {"id": 4, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10010000410001000120319017", "createdAt": 1649763912928, "perfection": 1}]}, "characters": [{"id": 7, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "699", "transferredAt": 1627276078338}], "permissions": {"admin": {}}, "achievements": [1], "joinedGuildAt": 1627274005785, "rewardHistory": [], "lastGamePlayed": 0, "lifetimeRewards": {"items": [], "runes": {}}, "craftedItemCount": 7, "equippedItemCount": 0, "inventoryItemCount": 0, "transferredInCount": 0, "transferredOutCount": 2, "marketTradeSoldCount": 0, "guildMembershipTokenId": 699, "marketTradeListedCount": 0, "isGuildMembershipActive": true}
+    // {"market": {"trades": []}, "points": 1, "address": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "guildId": 2, "premium": {"locked": 0, "features": [], "unlocked": 0}, "rewards": {"items": [], "runes": {}}, "daoVotes": [], "holdings": {}, "username": "Harry", "evolution": {}, "inventory": {"items": [{"id": 1, "from": "0x6Bf051ce847A0EBBc10fA22884C01D550BD40269", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 8, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 8, "variant": 1, "attributeId": 1}, {"value": 2, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 1}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Magical", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Runeform": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001100810021001111111", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649762142003, "isRetired": true, "shorthand": "8-2", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 8, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 2, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.44, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110081002100111...111", "isUnequipable": false, "isTransferable": true}, {"id": 1, "from": "0x85C07b6a475Ee19218D0ef9C278C7e58715Af842", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 14, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 14, "variant": 1, "attributeId": 1}, {"value": 1, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 0}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Rare", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Runeform": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001101410011001111101", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649764095769, "isRetired": true, "shorthand": "14-1", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 14, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 1, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.85, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110141001100111...101", "isUnequipable": false, "isTransferable": true}, {"id": 3, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000030500020002000024182", "createdAt": 1649763909508, "perfection": 0.5}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10020000201000500240030991", "createdAt": 1649763909610, "perfection": 0.4}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030031002432194", "createdAt": 1649763909691, "perfection": 0.45}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100040033004045827", "createdAt": 1649763909821, "perfection": 0.3}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030034002847742", "createdAt": 1649763909914, "perfection": 0.43}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "100200002010006003200287488", "createdAt": 1649763909984, "perfection": 0.65}, {"id": 4, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10010000410001000120319017", "createdAt": 1649763912928, "perfection": 1}]}, "characters": [{"id": 7, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "699", "transferredAt": 1627276078338}], "permissions": {"admin": {}}, "achievements": [1], "joinedGuildAt": 1627274005785, "rewardHistory": [], "lastGamePlayed": 0, "lifetimeRewards": {"items": [], "runes": {}}, "craftedItemCount": 7, "equippedItemCount": 0, "inventoryItemCount": 0, "transferredInCount": 0, "transferredOutCount": 2, "marketTradeSoldCount": 0, "guildMembershipTokenId": 699, "marketTradeListedCount": 0, "isGuildMembershipActive": true}
     // {
     //   "id": 1,
     //   "seller": "0x576a83f7B93df7D6BE68A3cfF148eDF9CF77D810",
@@ -1546,7 +1633,7 @@ class App {
     // "points": 1267,
     // "name": "The First Ones",
     // "description": "Formed after the discovery of a cache of hidden texts in an abandoned, secret Horadric meeting place. This group of scholars was brought together by Bin Zy.",
-    // "icon": "https://arken.gg/images/teams/the-first-ones.png",
+    // "icon": "/images/teams/the-first-ones.png",
     // "backgroundColor": "#fff",
     // "discord": { "role": "862170863827025950", "channel": "862153263804448769" },
     const teams = await this.model.Team.find()
@@ -1956,7 +2043,7 @@ class App {
   }
 
   async migrateAchievements() {
-    // {"market": {"trades": []}, "points": 1, "address": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "guildId": 2, "premium": {"locked": 0, "features": [], "unlocked": 0}, "rewards": {"items": [], "runes": {}}, "daoVotes": [], "holdings": {}, "username": "Harry", "evolution": {}, "inventory": {"items": [{"id": 1, "from": "0x6Bf051ce847A0EBBc10fA22884C01D550BD40269", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 8, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 8, "variant": 1, "attributeId": 1}, {"value": 2, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 1}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Magical", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001100810021001111111", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649762142003, "isRetired": true, "shorthand": "8-2", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 8, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 2, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.44, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110081002100111...111", "isUnequipable": false, "isTransferable": true}, {"id": 1, "from": "0x85C07b6a475Ee19218D0ef9C278C7e58715Af842", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 14, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 14, "variant": 1, "attributeId": 1}, {"value": 1, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 0}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Rare", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Rune Word": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001101410011001111101", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649764095769, "isRetired": true, "shorthand": "14-1", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 14, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 1, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.85, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110141001100111...101", "isUnequipable": false, "isTransferable": true}, {"id": 3, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000030500020002000024182", "createdAt": 1649763909508, "perfection": 0.5}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10020000201000500240030991", "createdAt": 1649763909610, "perfection": 0.4}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030031002432194", "createdAt": 1649763909691, "perfection": 0.45}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100040033004045827", "createdAt": 1649763909821, "perfection": 0.3}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030034002847742", "createdAt": 1649763909914, "perfection": 0.43}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "100200002010006003200287488", "createdAt": 1649763909984, "perfection": 0.65}, {"id": 4, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10010000410001000120319017", "createdAt": 1649763912928, "perfection": 1}]}, "characters": [{"id": 7, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "699", "transferredAt": 1627276078338}], "permissions": {"admin": {}}, "achievements": [1], "joinedGuildAt": 1627274005785, "rewardHistory": [], "lastGamePlayed": 0, "lifetimeRewards": {"items": [], "runes": {}}, "craftedItemCount": 7, "equippedItemCount": 0, "inventoryItemCount": 0, "transferredInCount": 0, "transferredOutCount": 2, "marketTradeSoldCount": 0, "guildMembershipTokenId": 699, "marketTradeListedCount": 0, "isGuildMembershipActive": true}
+    // {"market": {"trades": []}, "points": 1, "address": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "guildId": 2, "premium": {"locked": 0, "features": [], "unlocked": 0}, "rewards": {"items": [], "runes": {}}, "daoVotes": [], "holdings": {}, "username": "Harry", "evolution": {}, "inventory": {"items": [{"id": 1, "from": "0x6Bf051ce847A0EBBc10fA22884C01D550BD40269", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 8, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 8, "variant": 1, "attributeId": 1}, {"value": 2, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 1}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Magical", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Runeform": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001100810021001111111", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649762142003, "isRetired": true, "shorthand": "8-2", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 8, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 2, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.44, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110081002100111...111", "isUnequipable": false, "isTransferable": true}, {"id": 1, "from": "0x85C07b6a475Ee19218D0ef9C278C7e58715Af842", "icon": "undefinedimages/items/00001.png", "meta": {"harvestBurn": 0, "harvestFees": {}, "harvestYield": 14, "chanceToLoseHarvest": 0, "chanceToSendHarvestToHiddenPool": 0}, "mods": [{"value": 14, "variant": 1, "attributeId": 1}, {"value": 1, "variant": 1, "attributeId": 2}, {"value": 1, "variant": 1, "attributeId": 3}, {"value": 111, "variant": 1}, {"value": 1, "variant": 0}], "name": "Steel", "type": 0, "isNew": false, "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "slots": [1, 2], "value": "0", "rarity": "Rare", "recipe": {"requirement": [{"id": 3, "quantity": 1}, {"id": 1, "quantity": 1}]}, "slotId": 1, "status": "transferred_out", "details": {"Date": "April 20, 2021 - June 4, 2021", "Type": "Sword", "Subtype": "Night Blade", "Runeform": "Tir El", "Max Supply": "Unknown", "Distribution": "Crafted"}, "hotness": 6, "tokenId": "100100001101410011001111101", "version": 1, "branches": {"1": {"attributes": [{"id": 1, "max": 15, "min": 5, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "perfection": [15, 0], "description": ["Made by Men, this blade is common but has minimal downsides."]}, "2": {"attributes": [{"id": 1, "max": 20, "min": 16, "description": "{value}% Increased Attack Speed"}, {"id": 3, "max": 8, "min": 6, "description": "{value}% Less Damage"}, {"id": 4, "max": 100, "min": 81, "description": "{value} Increased Maximum Rage"}, {"id": 5, "max": 5, "min": 3, "description": "{value} Increased Elemental Resists"}, {"id": 7, "max": 5, "min": 3, "description": "{value} Increased Minion Attack Speed"}, {"id": 8, "value": 3, "description": "{value} Increased Light Radius"}], "description": "Made by Men, this blade is common but has minimal downsides."}}, "category": "weapon", "createdAt": 1649764095769, "isRetired": true, "shorthand": "14-1", "attributes": [{"id": 1, "max": 15, "min": 5, "value": 14, "variant": 1, "attributeId": 1, "description": "{value}% Increased Harvest Yield"}, {"id": 2, "max": 5, "min": 0, "value": 1, "variant": 1, "attributeId": 2, "description": "{value}% Harvest Fee"}, {"id": 3, "map": {"0": "EL", "1": "ELD", "2": "TIR", "3": "NEF", "4": "ITH", "5": "ITH", "6": "TAL", "7": "RAL", "8": "ORT", "9": "THUL", "10": "AMN", "11": "SOL", "12": "SHAEL"}, "max": 2, "min": 0, "value": 1, "variant": 1, "attributeId": 3, "description": "Harvest Fee Token: {value}"}, {"id": 55, "max": 2, "min": 2, "value": 2, "description": "{value} Sockets"}], "isDisabled": false, "isRuneword": true, "perfection": 0.85, "createdDate": 12111, "isCraftable": false, "isEquipable": true, "isTradeable": true, "shortTokenId": "10010000110141001100111...101", "isUnequipable": false, "isTransferable": true}, {"id": 3, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000030500020002000024182", "createdAt": 1649763909508, "perfection": 0.5}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10020000201000500240030991", "createdAt": 1649763909610, "perfection": 0.4}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030031002432194", "createdAt": 1649763909691, "perfection": 0.45}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100040033004045827", "createdAt": 1649763909821, "perfection": 0.3}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "1002000020100030034002847742", "createdAt": 1649763909914, "perfection": 0.43}, {"id": 2, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "100200002010006003200287488", "createdAt": 1649763909984, "perfection": 0.65}, {"id": 4, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "10010000410001000120319017", "createdAt": 1649763912928, "perfection": 1}]}, "characters": [{"id": 7, "from": "0x0000000000000000000000000000000000000000", "owner": "0x1cAA7069d4552055d3187097998504f9dd3CA496", "status": "created", "tokenId": "699", "transferredAt": 1627276078338}], "permissions": {"admin": {}}, "achievements": [1], "joinedGuildAt": 1627274005785, "rewardHistory": [], "lastGamePlayed": 0, "lifetimeRewards": {"items": [], "runes": {}}, "craftedItemCount": 7, "equippedItemCount": 0, "inventoryItemCount": 0, "transferredInCount": 0, "transferredOutCount": 2, "marketTradeSoldCount": 0, "guildMembershipTokenId": 699, "marketTradeListedCount": 0, "isGuildMembershipActive": true}
 
     // {
     //   "id": 1,
@@ -2421,7 +2508,7 @@ class App {
       // "link": "https://arken.gg/game/raids",
       // "primaryColor": "red",
       // "secondaryColor": "white",
-      // "logoLink": "https://arken.gg/images/games/rune-raid-logo.png",
+      // "logoLink": "/images/games/rune-raid-logo.png",
       // "shortDescription": "Arken is an addicting dark fantasy RPG. Play and earn runes (crypto) battling players and AI. Use runes to craft gear (NFTs) to make your character more powerful.",
       // "description": "The Future DeFi and Gaming Ecosystem\n\nHybrid gaming ecosystem which utilizes NFT game assets, seamless integration into a conventional game.\n",
       // "storyline": "",
@@ -2565,6 +2652,10 @@ class App {
   }
 
   async migrateCharacterFactions() {
+    this.cache.Application.Arken = await this.model.Application.findOne({
+      key: 'arken',
+    }).exec()
+
     for (const item of characterFactions) {
       if (!item.name) continue
 
@@ -3223,7 +3314,7 @@ class App {
     const bounties = [
       {
         name: 'Document Arken Realms on Wikipedia',
-        reward: '50 ZEL',
+        reward: '50 ZENO',
         status: 'Active', // 'Ready to be accepted, ask in Telegram.'
         claimedBy: 'Nobody yet.',
         description:
@@ -3231,7 +3322,7 @@ class App {
       },
       {
         name: 'List Evolution Isles on various game listing sites',
-        reward: '50 ZEL',
+        reward: '50 ZENO',
         status: 'Paused', // 'Paused. Wait for Evo 2 and free account system.',
         claimedBy: 'Nobody yet.',
         description:
@@ -3239,7 +3330,7 @@ class App {
       },
       {
         name: 'Categorize AI generated items into mythic/epic/rare/magical',
-        reward: '2 ZEL per item',
+        reward: '2 ZENO per item',
         status: 'Paused', //'Paused. Wait for more items to be generated (October).',
         claimedBy: 'Nobody yet.',
         description:
@@ -3325,7 +3416,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [],
             winnerId: await this.findProfileIdByUsername('Matheus'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 5 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 10 },
               { ownerId: await this.findProfileIdByUsername('Discomonk'), amount: 20 },
               { ownerId: await this.findProfileIdByUsername('FireLord'), amount: 40 },
@@ -3343,7 +3434,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 2 },
               { ownerId: await this.findProfileIdByUsername('SamKouCaille'), amount: 2 },
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 1 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 1 },
             ],
             content: `Item from the Giveaway Wallet that wasn't given away. Time to search the inventory..`,
           },
@@ -3354,7 +3445,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [],
             winnerId: await this.findProfileIdByUsername('Riccardo'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 20 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 20 },
               { ownerId: await this.findProfileIdByUsername('FireLord'), amount: 40 },
               { ownerId: await this.findProfileIdByUsername('Monk'), amount: 50 },
               { ownerId: await this.findProfileIdByUsername('Discomonk'), amount: 60 },
@@ -3369,7 +3460,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [],
             winnerId: await this.findProfileIdByUsername('Matheus'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 1 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 2 },
             ],
@@ -3383,7 +3474,7 @@ class App {
             winnerId: await this.findProfileIdByUsername('Matheus'),
             entries: [
               { ownerId: await this.findProfileIdByUsername('SamKouCaille'), amount: 1 },
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 1 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
             ],
@@ -3396,7 +3487,7 @@ class App {
             raffleRequirementsOnRaffleRewards: [{ raffleRequirement: { key: 'noWinsThisYear' } }],
             winnerId: await this.findProfileIdByUsername('Maiev'),
             entries: [
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 20 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 20 },
               { ownerId: await this.findProfileIdByUsername('Monk'), amount: 70 },
               { ownerId: await this.findProfileIdByUsername('Discomonk'), amount: 80 },
               { ownerId: await this.findProfileIdByUsername('Maiev'), amount: 100 },
@@ -3435,7 +3526,7 @@ class App {
             winnerId: await this.findProfileIdByUsername('Lazy'),
             entries: [
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 5 },
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 5 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 5 },
             ],
             content: `Item from the Giveaway Wallet that wasn't given away. Time to search the inventory..`,
           },
@@ -3469,7 +3560,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Disco'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 2 },
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 2 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 2 },
             ],
             content: `You definitely like RNG.`,
           },
@@ -3483,7 +3574,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Ekke'), amount: 1 },
               { ownerId: await this.findProfileIdByUsername('Maiev'), amount: 2 },
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 3 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 3 },
               { ownerId: await this.findProfileIdByUsername('Disco'), amount: 3 },
             ],
             content: `This is the same scroll that's transmuted using 1 ZOD.`,
@@ -3540,7 +3631,7 @@ class App {
               { ownerId: await this.findProfileIdByUsername('Lazy'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Ekke'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Maiev'), amount: 5 },
-              { ownerId: await this.findProfileIdByUsername('Memefella'), amount: 5 },
+              { ownerId: await this.findProfileIdByUsername('Hashwarp'), amount: 5 },
               { ownerId: await this.findProfileIdByUsername('Matheus'), amount: 5 },
             ],
             content: `You'll receive one Rune character (choose your class).`,
@@ -3896,26 +3987,26 @@ class App {
 
     // mongo.Account.dropIndex('applicationId_1_organizationId_1_username_1')
 
-    this.cache.Account.Memefella = await this.model.Account.findOne({
+    this.cache.Account.Hashwarp = await this.model.Account.findOne({
       applicationId: this.cache.Application.Arken.id,
-      username: 'Memefella',
+      username: 'Hashwarp',
     }).exec()
 
-    if (!this.cache.Account.Memefella)
-      this.cache.Account.Memefella = await this.model.Account.create({
+    if (!this.cache.Account.Hashwarp)
+      this.cache.Account.Hashwarp = await this.model.Account.create({
         applicationId: this.cache.Application.Arken.id,
-        username: 'Memefella',
+        username: 'Hashwarp',
       })
 
     console.log('Creating profiles')
 
-    this.cache.Profile.Memefella = await this.getProfileByName('Memefella')
+    this.cache.Profile.Hashwarp = await this.getProfileByName('Hashwarp')
 
-    if (!this.cache.Profile.Memefella)
-      this.cache.Profile.Memefella = await this.model.Profile.create({
+    if (!this.cache.Profile.Hashwarp)
+      this.cache.Profile.Hashwarp = await this.model.Profile.create({
         applicationId: this.cache.Application.Arken.id,
-        accountId: this.cache.Account.Memefella.id,
-        name: 'Memefella',
+        accountId: this.cache.Account.Hashwarp.id,
+        name: 'Hashwarp',
       })
 
     console.log('Creating chains')
@@ -4350,9 +4441,10 @@ class App {
 
     // await this.getChristmasTicketWhales()
     await this.createOmniverse() //
-    await this.migrateEras()
-    await this.migrateCharacterAttributes() //
-    await this.migrateGuides() //
+    await this.migrateStats()
+    // await this.migrateEras()
+    // await this.migrateCharacterAttributes() //
+    // await this.migrateGuides() //
 
     // await this.migrateItemTransmuteRules() // fill this in and do later
     // await this.migrateSkills() //
@@ -4410,13 +4502,14 @@ class App {
     await this.migrateItemRanks() //
     await this.migrateItemSets() //
 
-    await this.migrateTeams()
-    // await this.migrateAccounts()
-    await this.migrateProfiles()
-    // await this.migrateClaims()
-    // // await this.migrateGameItems()
-    await this.migrateOldTrades()
-    await this.migrateTrades()
+    // await this.migrateTeams()
+    // // await this.migrateAccounts()
+    // await this.migrateProfiles()
+    // // await this.migrateClaims()
+    // // // await this.migrateGameItems()
+    // await this.migrateOldTrades()
+    // await this.migrateTrades()
+
     // await this.migrateReferrals()
     // await this.migrateBounties()
     // await this.migrateRaffles()
